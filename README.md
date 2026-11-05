@@ -197,9 +197,36 @@ app.admin.accounts=admin@example.com,13800138000
 白名单里的账号注册即成为管理员；已存在的账号在启动时被自动提升。
 角色写在 JWT 的 claim 里，**改动角色后需要重新登录**才生效。
 
-> 当前两个 `CodeSender` 实现是**开发版**：验证码只打到后端日志，不会真的发信/发短信。
-> 接入真实通道时只需替换 `EmailCodeSender` / `SmsCodeSender` 里的 `send()` 方法体，
-> 业务代码（`VerifyCodeService`、Controller）完全不用改。
+### 真实发信
+
+`CodeSender` 是发送通道的抽象，**邮箱通道已支持真实发送且自适应配置**：
+
+- 配了 `SPRING_MAIL_HOST` → 通过 JavaMail 真正发信
+- 没配 → 自动退化为把验证码打印到后端日志（本地开发无需邮箱账号）
+
+配置方式（环境变量，走 Spring 标准绑定）：
+
+```bash
+SPRING_MAIL_HOST=smtp.qq.com      # QQ 邮箱；163 用 smtp.163.com
+SPRING_MAIL_PORT=465              # 465 = SSL，已默认开启
+SPRING_MAIL_USERNAME=你的邮箱
+SPRING_MAIL_PASSWORD=授权码        # 注意：不是登录密码
+MAIL_FROM=                        # 选填，发件人展示地址
+```
+
+**获取 QQ 邮箱授权码**：QQ 邮箱网页版 → 设置 → 账户 → 开启「POP3/SMTP服务」→ 生成授权码（16 位）。
+163 邮箱同理（设置 → POP3/SMTP/IMAP → 开启 → 获取授权码）。
+
+> 踩过的坑：不要写成 `spring.mail.host=${MAIL_HOST:}`。空字符串会被 Spring 当成"已配置"，
+> 于是真的去连空主机，发码直接失败。所以 `spring.mail.host` 刻意不写进配置文件，
+> 完全交给 `SPRING_MAIL_HOST` 环境变量，不设就不会注册 `JavaMailSender`。
+
+发送失败时 `VerifyCodeService` 会撤销验证码和 60 秒限制并返回明确错误，
+不会让用户手里攥着一个发不出去的验证码干等。
+
+**短信通道仍是开发版**（只打日志）。接入需要：阿里云/腾讯云 AccessKey、
+**已审核通过的短信签名与模板编号**（签名和模板需 1~2 天审核）。代码位置在
+`SmsCodeSender.send()`，业务代码无需改动。
 
 
 ### 题集（需登录）

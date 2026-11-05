@@ -84,8 +84,18 @@ public class VerifyCodeService {
         String code = String.format("%06d", random.nextInt(1_000_000));
         ttlStore.put(codeKey(target, channel), code, CODE_TTL);
 
-        // 4) 交给通道发送（当前是打日志实现）
-        sender.send(target, code);
+        // 4) 交给通道发送。
+        //    发送失败要撤销验证码和 60 秒限制，否则用户会被白锁一分钟、
+        //    而且手里那个验证码永远用不上。
+        try {
+            sender.send(target, code);
+        } catch (RuntimeException e) {
+            ttlStore.delete(codeKey(target, channel));
+            ttlStore.delete(intervalKey);
+            log.error("验证码发送失败: channel={}, target={}", channel, maskForLog(target), e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "验证码发送失败，请稍后重试或联系管理员检查" + channel.label() + "配置");
+        }
 
         log.info("验证码已生成: channel={}, target={}, 当日第 {} 次", channel, maskForLog(target), sent);
     }

@@ -58,6 +58,13 @@
             <artifactId>flyway-mysql</artifactId>
         </dependency>
 
+        <!-- 邮箱验证码真实发送。只有配了 spring.mail.host 才会注册 JavaMailSender，
+             没配时 EmailCodeSender 自动退化为打日志，不影响本地开发。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
