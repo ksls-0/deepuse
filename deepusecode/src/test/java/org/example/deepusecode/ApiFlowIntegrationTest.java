@@ -14,7 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.example.deepusecode.character.verifycode.CodeChannel;
-import org.example.deepusecode.character.verifycode.CodeStore;
+import org.example.deepusecode.character.store.TtlStore;
 import org.example.deepusecode.character.verifycode.VerifyCodeService;
 
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ class ApiFlowIntegrationTest {
 
     /** 测试 profile 下是 InMemoryCodeStore，往它里面塞验证码比读日志方便 */
     @Autowired
-    private CodeStore codeStore;
+    private TtlStore ttlStore;
 
     /**
      * 默认的 SimpleClientHttpRequestFactory 基于 HttpURLConnection，在
@@ -454,6 +454,36 @@ class ApiFlowIntegrationTest {
         }
     }
 
+    @Test
+    @DisplayName("AI 生成配额：超过每日上限返回 429，且不影响其他用户")
+    void generationQuotaLimited() {
+        String token = register("quota@example.com", "secret123");
+        long setId = createSet(token, "配额测试", List.of("问题一"));
+        List<Long> ids = qids(get("/api/sets/" + setId + "/sheet", token));
+        long sheetId = saveSheet(token, setId, ids, List.of("答案一"));
+
+        // 测试 profile 里 app.ai.daily-generation-limit=5
+        for (int i = 0; i < 5; i++) {
+            Res ok = post("/api/sets/" + setId + "/generate", Map.of("sheetId", sheetId), token);
+            assertTrue(ok.ok(), "第 " + (i + 1) + " 次生成应成功: " + ok.message());
+        }
+
+        Res blocked = post("/api/sets/" + setId + "/generate", Map.of("sheetId", sheetId), token);
+        assertEquals(429, blocked.status(), "超过配额应返回 429");
+        assertTrue(blocked.message().contains("生成次数"), "提示应说明配额用尽：" + blocked.message());
+
+        // 被拒绝的这次不该消耗额度：再试一次仍然是 429 而不是更奇怪的状态
+        assertEquals(429, post("/api/sets/" + setId + "/generate",
+                Map.of("sheetId", sheetId), token).status());
+
+        // 配额按用户隔离，别的用户不受影响
+        String otherToken = register("quota2@example.com", "secret123");
+        long otherSet = createSet(otherToken, "配额测试2", List.of("问题一"));
+        List<Long> otherIds = qids(get("/api/sets/" + otherSet + "/sheet", otherToken));
+        long otherSheet = saveSheet(otherToken, otherSet, otherIds, List.of("答案一"));
+        assertTrue(post("/api/sets/" + otherSet + "/generate",
+                Map.of("sheetId", otherSheet), otherToken).ok(), "其他用户的配额应不受影响");
+    }
     // ===================== helpers =====================
 
     private List<Long> qids(Res sheetResponse) {
@@ -552,7 +582,7 @@ class ApiFlowIntegrationTest {
     private String seedCode(String target, CodeChannel channel) {
         String code = String.format("%06d", java.util.concurrent.ThreadLocalRandom.current()
                 .nextInt(1_000_000));
-        codeStore.put(VerifyCodeService.codeKey(target, channel), code, java.time.Duration.ofMinutes(5));
+        ttlStore.put(VerifyCodeService.codeKey(target, channel), code, java.time.Duration.ofMinutes(5));
         return code;
     }
 

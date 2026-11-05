@@ -3,6 +3,7 @@ package org.example.deepusecode.character.verifycode;
 import lombok.extern.slf4j.Slf4j;
 import org.example.deepusecode.character.common.BusinessException;
 import org.example.deepusecode.character.common.ErrorCode;
+import org.example.deepusecode.character.store.TtlStore;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -36,11 +37,11 @@ public class VerifyCodeService {
     private static final String DAILY_KEY_PREFIX = "verify:daily:";
 
     private final SecureRandom random = new SecureRandom();
-    private final CodeStore codeStore;
+    private final TtlStore ttlStore;
     private final Map<CodeChannel, CodeSender> senders = new EnumMap<>(CodeChannel.class);
 
-    public VerifyCodeService(CodeStore codeStore, List<CodeSender> codeSenders) {
-        this.codeStore = codeStore;
+    public VerifyCodeService(TtlStore ttlStore, List<CodeSender> codeSenders) {
+        this.ttlStore = ttlStore;
         for (CodeSender sender : codeSenders) {
             senders.put(sender.channel(), sender);
         }
@@ -67,13 +68,13 @@ public class VerifyCodeService {
 
         // 1) 60 秒内只允许发一次
         String intervalKey = INTERVAL_KEY_PREFIX + channel.key() + ":" + target;
-        if (!codeStore.putIfAbsent(intervalKey, "1", RESEND_INTERVAL)) {
+        if (!ttlStore.putIfAbsent(intervalKey, "1", RESEND_INTERVAL)) {
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "验证码发送过于频繁，请 60 秒后再试");
         }
 
         // 2) 每日上限，防止被刷短信费用
         String dailyKey = DAILY_KEY_PREFIX + channel.key() + ":" + target;
-        long sent = codeStore.increment(dailyKey, DAILY_WINDOW);
+        long sent = ttlStore.increment(dailyKey, DAILY_WINDOW);
         if (sent > DAILY_LIMIT) {
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS,
                     "今日验证码发送次数已达上限（" + DAILY_LIMIT + " 次），请明天再试");
@@ -81,7 +82,7 @@ public class VerifyCodeService {
 
         // 3) 生成并存储
         String code = String.format("%06d", random.nextInt(1_000_000));
-        codeStore.put(codeKey(target, channel), code, CODE_TTL);
+        ttlStore.put(codeKey(target, channel), code, CODE_TTL);
 
         // 4) 交给通道发送（当前是打日志实现）
         sender.send(target, code);
@@ -99,7 +100,7 @@ public class VerifyCodeService {
             throw BusinessException.badRequest("请填写验证码");
         }
         String key = codeKey(target, channel);
-        String saved = codeStore.get(key);
+        String saved = ttlStore.get(key);
         if (saved == null) {
             throw BusinessException.badRequest("验证码已过期，请重新获取");
         }
@@ -107,7 +108,7 @@ public class VerifyCodeService {
             throw BusinessException.badRequest("验证码不正确");
         }
         // 一次性：校验通过立即删除，避免同一验证码重复注册
-        codeStore.delete(key);
+        ttlStore.delete(key);
     }
 
     private String maskForLog(String target) {

@@ -53,6 +53,7 @@ public class TemplateService {
     private final PromptBuilder promptBuilder;
     private final DeepSeekClient deepSeekClient;
     private final CardJsonParser cardJsonParser;
+    private final QuotaService quotaService;
 
     // ===================== 生成 =====================
 
@@ -78,13 +79,24 @@ public class TemplateService {
         }
 
         String prompt = promptBuilder.buildCharacterPrompt(ctx);
-        long aiStartedAt = System.currentTimeMillis();
-        DeepSeekClient.AiResult aiResult = deepSeekClient.generateCharacterCard(prompt, ctx);
-        log.info("模板生成完成: ownerId={}, setId={}, model={}, degraded={}, 耗时={}ms",
-                userId, setId, aiResult.model(), aiResult.degraded(),
-                System.currentTimeMillis() - aiStartedAt);
 
-        return persist(userId, set, sheet, ctx, aiResult);
+        // 先扣配额再调 AI：AI 调用本身就有成本，
+        // 只统计成功次数的话，反复失败的重试也保护不到账单。
+        quotaService.consumeGeneration(userId);
+
+        try {
+            long aiStartedAt = System.currentTimeMillis();
+            DeepSeekClient.AiResult aiResult = deepSeekClient.generateCharacterCard(prompt, ctx);
+            log.info("模板生成完成: ownerId={}, setId={}, model={}, degraded={}, 耗时={}ms",
+                    userId, setId, aiResult.model(), aiResult.degraded(),
+                    System.currentTimeMillis() - aiStartedAt);
+
+            return persist(userId, set, sheet, ctx, aiResult);
+        } catch (RuntimeException e) {
+            // AI 失败或落库失败：退还额度，不让用户白扣
+            quotaService.refundGeneration(userId);
+            throw e;
+        }
     }
 
     /**

@@ -33,6 +33,7 @@ REDIS_HOST=localhost                     # 注册验证码依赖 Redis
 REDIS_PORT=6379
 REDIS_PASSWORD=
 DEEPSEEK_API_KEY=                        # 留空则走 mock，链路仍可跑通
+AI_DAILY_GENERATION_LIMIT=20             # 每用户 24h 内最多生成多少次角色模板
 ```
 
 - `JWT_SECRET` **缺失或仍是模板占位值时应用会拒绝启动**（防止用弱密钥上线）。
@@ -151,6 +152,16 @@ GET  /user/me                                              当前用户
 每天最多 10 次；两个通道的验证码互不通用。所有验证码状态存在 **Redis** 里。
 
 **登录限流**：同「通道 + 账号 + IP」10 分钟内失败 5 次返回 429，登录成功后清零。
+
+### AI 生成配额
+
+每次成功生成角色模板消耗 1 次额度，按用户 24 小时滚动窗口计数（Redis `ai:quota:gen:{userId}`）。
+
+- 默认上限 20 次/24h，用 `AI_DAILY_GENERATION_LIMIT` 调整，`<= 0` 表示不限量（本地压测用）
+- 超额返回 **429**：`今日 AI 生成次数已用完（上限 N 次），请明天再试`
+- 策略是**先扣额度、失败退还**：AI 调用本身就有成本，只统计成功次数保护不到账单；
+  但 AI 异常或落库失败会退还，不会白扣用户额度
+- 配额按用户隔离，一个用户用尽不影响其他人
 
 > 当前两个 `CodeSender` 实现是**开发版**：验证码只打到后端日志，不会真的发信/发短信。
 > 接入真实通道时只需替换 `EmailCodeSender` / `SmsCodeSender` 里的 `send()` 方法体，
@@ -367,7 +378,7 @@ curl -s https://your-domain.com/actuator/health
 - [ ] **项目尚未纳入 git** —— 上线前务必 `git init`，否则出问题无法回滚。
 - [x] ~~无 Flyway，表结构靠 ddl-auto~~（已完成：Flyway 接管 schema，ddl-auto 改为 validate）
 - [ ] 生成仍是同步阻塞，并发高时会占满 Tomcat 线程（`ai_template.gen_status` 已预留异步空间）。
-- [x] ~~注册接口无验证码/无限流~~（已完成：邮箱/手机号双通道 + Redis 验证码与限流）- [ ] AI 生成仍无配额，建议按用户每日限次。
+- [x] ~~注册接口无验证码/无限流~~（已完成：邮箱/手机号双通道 + Redis 验证码与限流）- [x] ~~AI 生成无配额~~（已完成：按用户 24h 滚动窗口限次，Redis 计数）
 - [ ] 一键导入无频率限制，广场 `sort=hot` 按 `importCount` 排序，理论上可被刷榜。
 - [ ] 广场暂无审核、举报、下架机制（UGC 内容合规风险）。
 - [ ] 软删除不彻底：删题集不级联清理 `answer_sheet` / `answer`。
