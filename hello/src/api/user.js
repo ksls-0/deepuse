@@ -1,12 +1,28 @@
 import api from './config';
 
 export const userApi = {
-  login(account, password) {
-    return api.post('/user/login', { account, password });
+  // 验证码
+  sendEmailCode(email) {
+    return api.post('/user/code/email', { target: email });
+  },
+  sendPhoneCode(phone) {
+    return api.post('/user/code/phone', { target: phone });
   },
 
-  register(account, password) {
-    return api.post('/user/register', { account, password });
+  // 注册
+  registerEmail(email, code, password) {
+    return api.post('/user/register/email', { email, code, password });
+  },
+  registerPhone(phone, code, password) {
+    return api.post('/user/register/phone', { phone, code, password });
+  },
+
+  // 登录
+  loginEmail(email, password) {
+    return api.post('/user/login/email', { email, password });
+  },
+  loginPhone(phone, password) {
+    return api.post('/user/login/phone', { phone, password });
   },
 
   me() {

@@ -68,7 +68,11 @@ if (-not (Test-Path $mvn)) {
     throw 'Maven not found. Put mvn on PATH or edit the default path in this script.'
 }
 
-$mvnArgs = @('-B', 'package')
+# 'clean' is required, not cosmetic: maven-resources-plugin copies static/ into
+# target/classes/static incrementally and never deletes files that disappeared
+# from src. Without clean, old frontend chunks (previous hashes) pile up inside
+# the jar and can be served alongside the new ones.
+$mvnArgs = @('-B', 'clean', 'package')
 # The machine-wide Maven settings point at a non-existent repo; prefer the
 # workspace-local settings file when it exists.
 $settings = Join-Path $root '.build\settings.xml'

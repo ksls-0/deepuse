@@ -1,8 +1,8 @@
 [Unit]
 Description=deepusecode (角色工坊)
-# MySQL 若不是本机可去掉这一行
-After=network.target mysql.service
-Wants=mysql.service
+# MySQL 与 Redis 都必须是本机时才用这两行；否则去掉对应依赖
+After=network.target mysql.service redis-server.service
+Wants=mysql.service redis-server.service
 
 [Service]
 Type=simple

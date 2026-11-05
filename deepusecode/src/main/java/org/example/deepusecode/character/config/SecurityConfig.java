@@ -94,8 +94,11 @@ public class SecurityConfig {
                          */
                         .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.FORWARD,
                                 DispatcherType.ERROR).permitAll()
-                        // 认证入口
-                        .requestMatchers("/user/login", "/user/register").permitAll()
+                        // 认证入口：注册、登录、发验证码都放行
+                        .requestMatchers(
+                                "/user/login", "/user/login/**",
+                                "/user/register", "/user/register/**",
+                                "/user/code/**").permitAll()
                         // 广场浏览：游客可读
                         .requestMatchers(HttpMethod.GET, "/api/explore/**").permitAll()
                         // 健康检查给负载均衡 / 容器探针用

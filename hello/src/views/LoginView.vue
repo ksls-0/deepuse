@@ -4,10 +4,28 @@
       <h1 class="title">登录</h1>
       <p class="subtitle">登录后可创建题集、生成并分享角色</p>
 
+      <div class="tabs">
+        <button
+          :class="['tab', { active: mode === 'email' }]"
+          type="button"
+          @click="switchMode('email')"
+        >邮箱登录</button>
+        <button
+          :class="['tab', { active: mode === 'phone' }]"
+          type="button"
+          @click="switchMode('phone')"
+        >手机号登录</button>
+      </div>
+
       <form @submit.prevent="handleLogin">
         <div class="field">
-          <label>账号</label>
-          <input v-model.trim="form.account" type="text" placeholder="手机号或邮箱" autocomplete="username" />
+          <label>{{ isEmail ? '邮箱' : '手机号' }}</label>
+          <input
+            v-model.trim="form.target"
+            :type="isEmail ? 'email' : 'tel'"
+            :placeholder="isEmail ? 'you@example.com' : '11 位手机号'"
+            :autocomplete="isEmail ? 'username' : 'username'"
+          />
         </div>
 
         <div class="field">
@@ -36,7 +54,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { userApi } from '@/api/user';
 import { useUserStore } from '@/stores/user';
@@ -45,20 +63,44 @@ const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
 
-const form = reactive({ account: '', password: '' });
+const PHONE = /^1[3-9]\d{9}$/;
+const EMAIL = /^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const mode = ref('email');
+const isEmail = computed(() => mode.value === 'email');
+
+const form = reactive({ target: '', password: '' });
 const loading = ref(false);
 const error = ref('');
 
+function switchMode(next) {
+  if (mode.value === next) return;
+  mode.value = next;
+  form.target = '';
+  error.value = '';
+}
+
 async function handleLogin() {
   error.value = '';
-  if (!form.account || !form.password) {
-    error.value = '请填写账号和密码';
+
+  if (!form.target || !form.password) {
+    error.value = isEmail.value ? '请填写邮箱和密码' : '请填写手机号和密码';
+    return;
+  }
+  if (isEmail.value && !EMAIL.test(form.target)) {
+    error.value = '邮箱格式不正确';
+    return;
+  }
+  if (!isEmail.value && !PHONE.test(form.target)) {
+    error.value = '手机号格式不正确';
     return;
   }
 
   loading.value = true;
   try {
-    const data = await userApi.login(form.account, form.password);
+    const data = isEmail.value
+      ? await userApi.loginEmail(form.target, form.password)
+      : await userApi.loginPhone(form.target, form.password);
     userStore.setLoginInfo(data);
     router.push(route.query.redirect || '/home');
   } catch (e) {
@@ -81,8 +123,8 @@ async function handleLogin() {
 
 .auth-card {
   width: 100%;
-  max-width: 400px;
-  padding: 40px;
+  max-width: 420px;
+  padding: 36px 40px 40px;
   background: #fff;
   border-radius: 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
@@ -99,7 +141,35 @@ async function handleLogin() {
   font-size: 13px;
   color: #8a8a8a;
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  background: #eef2f7;
+  border-radius: 16px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  background: #fff;
+  color: #1f1f1f;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .field { margin-bottom: 18px; }
@@ -154,6 +224,8 @@ async function handleLogin() {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .links a { color: #54a3f8; text-decoration: none; }

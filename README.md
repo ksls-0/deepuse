@@ -29,15 +29,33 @@ cp .env.example .env      # 然后编辑 .env
 DB_USERNAME=root
 DB_PASSWORD=你的数据库密码
 JWT_SECRET=至少32位的随机字符串          # openssl rand -base64 48
+REDIS_HOST=localhost                     # 注册验证码依赖 Redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
 DEEPSEEK_API_KEY=                        # 留空则走 mock，链路仍可跑通
 ```
 
 - `JWT_SECRET` **缺失或仍是模板占位值时应用会拒绝启动**（防止用弱密钥上线）。
 - `.env` 已被 `.gitignore` 忽略；服务器上用 systemd `EnvironmentFile` 加载。
+- **Redis 是注册功能的硬依赖**（验证码、重发限制、每日上限都存这里），必须先起好。
+
+#### 老库升级注意
+
+邮箱/手机号注册给 `app_user` 加了唯一索引，但 `ddl-auto=update` **不会给已有表补索引**。
+老库升级请手工执行一次：
+
+```bash
+mysql -u root -p testlogin < deepusecode/src/main/resources/db/migration-v2-auth.sql
+```
+
+全新空库不需要执行。
 
 ### 1. 本地开发（前端热更新 + 后端 jar）
 
 ```bash
+# 终端 0：Redis（注册功能依赖；本机 Redis 若报 MISCONF，把 dir 指到可写目录）
+redis-server --dir "D:/your/writable/path"
+
 # 终端 A：后端
 cd deepusecode
 mvn package -DskipTests
@@ -108,12 +126,27 @@ npm run serve
 
 ## 三、接口一览
 
-### 用户
+### 认证（邮箱 / 手机号两条独立通道）
+
 ```
-POST   /user/register              {account, password}
-POST   /user/login                 {account, password}   失败 5 次/10 分钟后返回 429
-GET    /user/me
+POST /user/code/email        {target}                      发邮箱验证码
+POST /user/code/phone        {target}                      发手机验证码
+POST /user/register/email    {email, code, password}       邮箱注册
+POST /user/register/phone    {phone, code, password}       手机号注册
+POST /user/login/email       {email, password}             邮箱登录
+POST /user/login/phone       {phone, password}             手机号登录
+GET  /user/me                                              当前用户
 ```
+
+**验证码规则**：6 位数字、5 分钟有效、校验成功立即作废；同一目标 60 秒内只能发一次、
+每天最多 10 次；两个通道的验证码互不通用。所有验证码状态存在 **Redis** 里。
+
+**登录限流**：同「通道 + 账号 + IP」10 分钟内失败 5 次返回 429，登录成功后清零。
+
+> 当前两个 `CodeSender` 实现是**开发版**：验证码只打到后端日志，不会真的发信/发短信。
+> 接入真实通道时只需替换 `EmailCodeSender` / `SmsCodeSender` 里的 `send()` 方法体，
+> 业务代码（`VerifyCodeService`、Controller）完全不用改。
+
 
 ### 题集（需登录）
 ```
@@ -294,6 +327,24 @@ curl -o /dev/null -w '%{http_code}\n' https://your-domain.com/api/sets/mine  # 4
 
 - **JDK 17+**（jar 以 release 17 编译，JDK 11 跑不了）
 - MySQL 8.x，库名 `testlogin`（连接串带 `createDatabaseIfNotExist=true` 会自动建库）
+- **Redis 5+**（注册验证码、重发限制、每日上限都依赖它）
+
+```bash
+# Debian/Ubuntu 安装 Redis 并只监听本机
+sudo apt install redis-server
+sudo sed -i 's/^bind .*/bind 127.0.0.1 ::1/' /etc/redis/redis.conf
+sudo systemctl enable --now redis-server
+redis-cli ping      # 期望 PONG
+```
+
+> 若 Redis 报 `MISCONF ... not able to persist on disk`，是 `dir` 目录不可写，
+> 把 `/etc/redis/redis.conf` 里的 `dir` 改到有权限的路径再重启。
+
+上线自检时确认健康检查里 redis 组件也是 UP：
+
+```bash
+curl -s https://your-domain.com/actuator/health
+```
 
 ---
 
@@ -307,7 +358,7 @@ curl -o /dev/null -w '%{http_code}\n' https://your-domain.com/api/sets/mine  # 4
 - [ ] **项目尚未纳入 git** —— 上线前务必 `git init`，否则出问题无法回滚。
 - [ ] 无 Flyway/liquibase，表结构靠 `ddl-auto=update`；生产建议改 `validate` + 迁移脚本。
 - [ ] 生成仍是同步阻塞，并发高时会占满 Tomcat 线程（`ai_template.gen_status` 已预留异步空间）。
-- [ ] 注册接口无验证码/无限流，容易被批量注册；AI 生成无配额，建议按用户每日限次。
+- [x] ~~注册接口无验证码/无限流~~（已完成：邮箱/手机号双通道 + Redis 验证码与限流）- [ ] AI 生成仍无配额，建议按用户每日限次。
 - [ ] 一键导入无频率限制，广场 `sort=hot` 按 `importCount` 排序，理论上可被刷榜。
 - [ ] 广场暂无审核、举报、下架机制（UGC 内容合规风险）。
 - [ ] 软删除不彻底：删题集不级联清理 `answer_sheet` / `answer`。

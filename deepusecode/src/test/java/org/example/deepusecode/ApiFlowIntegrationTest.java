@@ -13,6 +13,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.example.deepusecode.character.verifycode.CodeChannel;
+import org.example.deepusecode.character.verifycode.CodeStore;
+import org.example.deepusecode.character.verifycode.VerifyCodeService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +39,10 @@ class ApiFlowIntegrationTest {
 
     @Autowired
     private ObjectMapper mapper;
+
+    /** 测试 profile 下是 InMemoryCodeStore，往它里面塞验证码比读日志方便 */
+    @Autowired
+    private CodeStore codeStore;
 
     /**
      * 默认的 SimpleClientHttpRequestFactory 基于 HttpURLConnection，在
@@ -82,10 +89,15 @@ class ApiFlowIntegrationTest {
         assertNotNull(tokenA);
         assertNotNull(tokenB);
 
-        Res dup = post("/user/register", Map.of("account", "author@example.com", "password", "secret123"), null);
+        // 邮箱已注册：换一个新验证码再注册同一邮箱，应 409
+        Res dup = post("/user/register/email", Map.of(
+                "email", "author@example.com",
+                "code", seedCode("author@example.com", CodeChannel.EMAIL),
+                "password", "secret123"), null);
         assertEquals(409, dup.status(), "重复注册应返回 409");
 
-        Res badLogin = post("/user/login", Map.of("account", "author@example.com", "password", "wrong-pass"), null);
+        Res badLogin = post("/user/login/email",
+                Map.of("email", "author@example.com", "password", "wrong-pass"), null);
         assertEquals(401, badLogin.status(), "密码错误应返回 401");
 
         // ---------- 3. A 创建题集 ----------
@@ -295,21 +307,116 @@ class ApiFlowIntegrationTest {
     @Test
     @DisplayName("登录失败限流：连续失败后返回 429")
     void loginRateLimited() {
-        String account = "bruteforce@example.com";
-        register(account, "secret123");
+        String email = "bruteforce@example.com";
+        register(email, "secret123");
 
         for (int i = 0; i < 5; i++) {
-            Res attempt = post("/user/login", Map.of("account", account, "password", "wrong-" + i), null);
+            Res attempt = post("/user/login/email",
+                    Map.of("email", email, "password", "wrong-" + i), null);
             assertEquals(401, attempt.status(), "第 " + (i + 1) + " 次错误密码应返回 401");
         }
 
-        Res blocked = post("/user/login", Map.of("account", account, "password", "wrong-6"), null);
+        Res blocked = post("/user/login/email", Map.of("email", email, "password", "wrong-6"), null);
         assertEquals(429, blocked.status(), "超过阈值后应返回 429");
         assertTrue(blocked.message().contains("失败次数"), "应给出可读的限流提示：" + blocked.message());
 
         // 正确密码也应被临时拒绝，避免绕过
-        assertEquals(429, post("/user/login",
-                Map.of("account", account, "password", "secret123"), null).status());
+        assertEquals(429, post("/user/login/email",
+                Map.of("email", email, "password", "secret123"), null).status());
+    }
+
+    @Test
+    @DisplayName("邮箱与手机号是两条独立注册通道")
+    void emailAndPhoneRegistration() {
+        // 邮箱注册
+        String email = "both@example.com";
+        String emailToken = register(email, "secret123");
+        assertFalse(emailToken.isBlank());
+
+        Res emailLogin = post("/user/login/email", Map.of("email", email, "password", "secret123"), null);
+        assertTrue(emailLogin.ok(), "邮箱登录失败: " + emailLogin.message());
+        assertEquals(email, emailLogin.data().path("account").asText());
+
+        // 手机号注册
+        String phone = "13800138001";
+        String phoneToken = registerByPhone(phone, "secret123");
+        assertFalse(phoneToken.isBlank());
+
+        Res phoneLogin = post("/user/login/phone", Map.of("phone", phone, "password", "secret123"), null);
+        assertTrue(phoneLogin.ok(), "手机号登录失败: " + phoneLogin.message());
+        assertEquals(phone, phoneLogin.data().path("account").asText());
+
+        // 通道隔离：拿邮箱去走手机号登录，会被手机号格式校验拦下（400）
+        assertEquals(400, post("/user/login/phone",
+                Map.of("phone", email, "password", "secret123"), null).status(),
+                "邮箱不是合法手机号，应被参数校验拒绝");
+
+        // 用手机号走邮箱登录同理
+        assertEquals(400, post("/user/login/email",
+                Map.of("email", phone, "password", "secret123"), null).status(),
+                "手机号不是合法邮箱，应被参数校验拒绝");
+
+        // 手机号重复注册
+        Res dupPhone = post("/user/register/phone", Map.of(
+                "phone", phone,
+                "code", seedCode(phone, CodeChannel.PHONE),
+                "password", "secret123"), null);
+        assertEquals(409, dupPhone.status(), "手机号重复注册应返回 409");
+    }
+
+    @Test
+    @DisplayName("验证码：错误码拒绝、成功后作废、通道之间不通用")
+    void verifyCodeRules() {
+        String email = "codecheck@example.com";
+
+        // 1. 没有发过码，直接注册应失败
+        Res noCode = post("/user/register/email",
+                Map.of("email", email, "code", "123456", "password", "secret123"), null);
+        assertEquals(400, noCode.status(), "未获取验证码不应注册成功");
+
+        // 2. 验证码错误应被拒绝
+        seedCode(email, CodeChannel.EMAIL);
+        Res wrongCode = post("/user/register/email",
+                Map.of("email", email, "code", "000000", "password", "secret123"), null);
+        assertEquals(400, wrongCode.status(), "验证码错误应拒绝");
+        assertTrue(wrongCode.message().contains("验证码"), "提示应指向验证码");
+
+        // 3. 正确的码可以注册
+        String goodCode = seedCode(email, CodeChannel.EMAIL);
+        Res ok = post("/user/register/email",
+                Map.of("email", email, "code", goodCode, "password", "secret123"), null);
+        assertTrue(ok.ok(), "正确验证码应注册成功: " + ok.message());
+
+        // 4. 验证码一次性：注册成功后同一个码已被删除，再用会报"已过期"
+        //    （注册流程是先校验验证码再查重，所以这里拿到的是 400 而不是 409）
+        Res reuse = post("/user/register/email",
+                Map.of("email", email, "code", goodCode, "password", "secret123"), null);
+        assertEquals(400, reuse.status(), "验证码用过即作废，第二次应报验证码问题");
+        assertTrue(reuse.message().contains("验证码"), "应提示验证码问题：" + reuse.message());
+
+        // 5. 通道隔离：邮箱通道的码不能用于手机号注册
+        String phone = "13900139001";
+        String emailOnlyCode = seedCode(phone, CodeChannel.EMAIL);
+        Res crossChannel = post("/user/register/phone",
+                Map.of("phone", phone, "code", emailOnlyCode, "password", "secret123"), null);
+        assertEquals(400, crossChannel.status(), "邮箱通道的验证码不能用于手机号注册");
+    }
+
+    @Test
+    @DisplayName("验证码发送限流：60 秒内不能重复发")
+    void sendCodeRateLimited() {
+        String email = "ratelimit@example.com";
+
+        Res first = post("/user/code/email", Map.of("target", email), null);
+        assertTrue(first.ok(), "首次发送应成功: " + first.message());
+
+        Res second = post("/user/code/email", Map.of("target", email), null);
+        assertEquals(429, second.status(), "60 秒内重复发送应返回 429");
+        assertTrue(second.message().contains("频繁"), "提示应说明发送过于频繁：" + second.message());
+
+        // 格式不对应 400 而不是限流
+        assertEquals(400, post("/user/code/email", Map.of("target", "不是邮箱"), null).status());
+        assertEquals(400, post("/user/code/phone", Map.of("target", "12345"), null).status());
     }
 
     @Test
@@ -331,10 +438,13 @@ class ApiFlowIntegrationTest {
 
         assertEquals(404, get("/api/sets/999999", token).status());
 
-        assertEquals(400, post("/user/register",
-                Map.of("account", "不是邮箱", "password", "secret123"), null).status());
-        assertEquals(400, post("/user/register",
-                Map.of("account", "short@example.com", "password", "123"), null).status());
+        assertEquals(400, post("/user/register/email",
+                Map.of("email", "不是邮箱", "code", "123456", "password", "secret123"), null).status());
+        assertEquals(400, post("/user/register/email",
+                Map.of("email", "short@example.com", "code", "123456", "password", "123"), null).status());
+        assertEquals(400, post("/user/register/email",
+                Map.of("email", "nocode@example.com", "code", "12", "password", "secret123"), null).status(),
+                "验证码位数不对应被参数校验拦下");
 
         Res notFound = get("/api/sets/999999", token);
         if (notFound.body() != null) {
@@ -416,12 +526,34 @@ class ApiFlowIntegrationTest {
         return res.data().path("id").asLong();
     }
 
-    private String register(String account, String password) {
-        Res res = post("/user/register", Map.of("account", account, "password", password), null);
-        assertTrue(res.ok(), "注册失败(" + account + "): " + res.message());
+    private String register(String email, String password) {
+        String code = seedCode(email, CodeChannel.EMAIL);
+        Res res = post("/user/register/email",
+                Map.of("email", email, "code", code, "password", password), null);
+        assertTrue(res.ok(), "注册失败(" + email + "): " + res.message());
         String token = res.data().path("token").asText();
         assertFalse(token.isBlank());
         return token;
+    }
+
+    private String registerByPhone(String phone, String password) {
+        String code = seedCode(phone, CodeChannel.PHONE);
+        Res res = post("/user/register/phone",
+                Map.of("phone", phone, "code", code, "password", password), null);
+        assertTrue(res.ok(), "手机号注册失败(" + phone + "): " + res.message());
+        return res.data().path("token").asText();
+    }
+
+    /**
+     * 直接往验证码存储里写一个已知验证码。
+     * <p>不走发送接口，是为了绕开「同一目标 60 秒内只能发一次」的限流——
+     * 那条规则由 {@code sendCodeRateLimited} 单独验证。</p>
+     */
+    private String seedCode(String target, CodeChannel channel) {
+        String code = String.format("%06d", java.util.concurrent.ThreadLocalRandom.current()
+                .nextInt(1_000_000));
+        codeStore.put(VerifyCodeService.codeKey(target, channel), code, java.time.Duration.ofMinutes(5));
+        return code;
     }
 
     private Res get(String path, String token) {
