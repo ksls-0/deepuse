@@ -1,0 +1,51 @@
+# ---- 构建产物 ----
+target/
+dist/
+out/
+build/
+*.class
+
+# ---- 依赖 ----
+node_modules/
+
+# ---- 本地构建环境（工作区内的 Maven 仓库与 settings）----
+.build/
+
+# ---- dev profile 的 H2 文件库数据 ----
+.data/
+
+# ---- 前端构建产物（由 build.ps1 同步进后端 static/）----
+deepusecode/src/main/resources/static/*
+!deepusecode/src/main/resources/static/.gitkeep
+
+# ---- 日志与临时文件 ----
+*.log
+*.dump
+*.dumpstream
+surefire-reports/
+
+# ---- IDE ----
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
+
+# ---- 敏感信息：不要提交真实密钥 ----
+# 真实环境变量文件（本地 / 服务器）
+.env
+.env.*
+!.env.example
+application-local.properties
+.env.local
+
+# ---- 运行时产物 ----
+logs/
+.data/

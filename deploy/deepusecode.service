@@ -1,0 +1,34 @@
+[Unit]
+Description=deepusecode (角色工坊)
+# MySQL 若不是本机可去掉这一行
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=appy
+Group=appy
+WorkingDirectory=/opt/deepusecode
+
+# 所有密钥与数据库凭据都从这里注入，权限建议 chmod 600
+EnvironmentFile=/opt/deepusecode/.env
+
+ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /opt/deepusecode/deepusecode-0.0.1-SNAPSHOT.jar
+
+# 日志由 logback 写入 logs/，stdout 交给 journald
+StandardOutput=journal
+StandardError=journal
+
+Restart=always
+RestartSec=5s
+SuccessExitStatus=143
+
+# ---- 安全加固 ----
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/deepusecode/logs /opt/deepusecode/.data
+
+[Install]
+WantedBy=multi-user.target
