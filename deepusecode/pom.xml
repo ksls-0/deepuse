@@ -46,6 +46,18 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- 数据库迁移：schema 由 Flyway 单一管理，不再依赖 ddl-auto
+             flyway-mysql 是 Flyway 10 拆分出来的 MySQL 方言模块，缺了会在启动时报
+             "Unsupported Database: MySQL" -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>

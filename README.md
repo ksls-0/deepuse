@@ -39,16 +39,25 @@ DEEPSEEK_API_KEY=                        # 留空则走 mock，链路仍可跑�
 - `.env` 已被 `.gitignore` 忽略；服务器上用 systemd `EnvironmentFile` 加载。
 - **Redis 是注册功能的硬依赖**（验证码、重发限制、每日上限都存这里），必须先起好。
 
-#### 老库升级注意
+#### 数据库迁移（Flyway）
 
-邮箱/手机号注册给 `app_user` 加了唯一索引，但 `ddl-auto=update` **不会给已有表补索引**。
-老库升级请手工执行一次：
+schema 现在由 **Flyway 单一管理**，`spring.jpa.hibernate.ddl-auto=validate`
+（Hibernate 只校验不改表，启动时就能发现实体与库的漂移）。
 
-```bash
-mysql -u root -p testlogin < deepusecode/src/main/resources/db/migration-v2-auth.sql
+```
+src/main/resources/db/migration/V1__init.sql    ← 8 张业务表的完整结构（含唯一索引）
 ```
 
-全新空库不需要执行。
+- **全新空库**：启动时自动执行 V1 建表。
+- **已有库**（表是早期 `ddl-auto` 建的、没有 `flyway_schema_history`）：
+  `baseline-on-migrate=true` + `baseline-version=1` 会把 V1 记成 baseline
+  （`type=BASELINE`，不重复执行），从此平滑接管，不需要手工跑 SQL。
+- **后续加表改表**：新增 `V2__xxx.sql`、`V3__xxx.sql` 即可，**不要修改已发布的 V 文件**
+  （Flyway 会校验 checksum 并拒绝启动）。
+
+`dev`（H2 演示）和 `test` profile 都关闭了 Flyway，由 Hibernate 直接建表。
+
+> 早期手工写的 `db/legacy/manual-v2-auth.sql` 保留作历史参考，Flyway 不会扫描它。
 
 ### 1. 本地开发（前端热更新 + 后端 jar）
 
@@ -356,7 +365,7 @@ curl -s https://your-domain.com/actuator/health
 - [x] ~~前端 history 路由 fallback~~（已完成，单体 jar 由 `WebMvcConfig` 处理）
 - [x] ~~AI 调用耗时埋点~~（已完成）
 - [ ] **项目尚未纳入 git** —— 上线前务必 `git init`，否则出问题无法回滚。
-- [ ] 无 Flyway/liquibase，表结构靠 `ddl-auto=update`；生产建议改 `validate` + 迁移脚本。
+- [x] ~~无 Flyway，表结构靠 ddl-auto~~（已完成：Flyway 接管 schema，ddl-auto 改为 validate）
 - [ ] 生成仍是同步阻塞，并发高时会占满 Tomcat 线程（`ai_template.gen_status` 已预留异步空间）。
 - [x] ~~注册接口无验证码/无限流~~（已完成：邮箱/手机号双通道 + Redis 验证码与限流）- [ ] AI 生成仍无配额，建议按用户每日限次。
 - [ ] 一键导入无频率限制，广场 `sort=hot` 按 `importCount` 排序，理论上可被刷榜。
