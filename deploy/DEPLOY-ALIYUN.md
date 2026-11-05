@@ -363,6 +363,11 @@ curl -s localhost:8081/actuator/health
 # {"status":"UP","groups":["liveness","readiness"]}
 ```
 
+> 这个接口应该**秒回**（几十毫秒）。如果每次都要十几秒，检查是不是有人把
+> `management.health.mail.enabled` 打开了——邮件健康检查每次都会真去连一次 SMTP，
+> 实测 smtp.qq.com:465 单次要 10~12 秒，还会被 QQ 邮箱当成异常连接。
+> 本项目已在 `application.properties` 里关掉它。
+
 ### 9.3 通过 Nginx 访问
 
 ```bash
