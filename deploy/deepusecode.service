@@ -13,7 +13,17 @@ WorkingDirectory=/opt/deepusecode
 # 所有密钥与数据库凭据都从这里注入，权限建议 chmod 600
 EnvironmentFile=/opt/deepusecode/.env
 
-ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar /opt/deepusecode/deepusecode-0.0.1-SNAPSHOT.jar
+ExecStart=/usr/bin/java \
+  -Xms512m -Xmx1536m \
+  -Duser.timezone=Asia/Shanghai \
+  -Dfile.encoding=UTF-8 \
+  -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/deepusecode/logs \
+  -jar /opt/deepusecode/deepusecode-0.0.1-SNAPSHOT.jar
+
+# 堆大小按机器规格调整：
+#   2 核 4G -> -Xms512m  -Xmx1536m
+#   2 核 2G -> -Xms256m  -Xmx768m   （并确保开了 swap，否则几个生成并发就会 OOM）
+# -Duser.timezone 必须写，否则容器/JVM 可能按 UTC 走，日志时间比北京时间早 8 小时。
 
 # 日志由 logback 写入 logs/，stdout 交给 journald
 StandardOutput=journal
