@@ -40,6 +40,9 @@ APP_ADMIN_ACCOUNTS=                     # 管理员账号白名单，逗号分�
 - `JWT_SECRET` **缺失或仍是模板占位值时应用会拒绝启动**（防止用弱密钥上线）。
 - `.env` 已被 `.gitignore` 忽略；服务器上用 systemd `EnvironmentFile` 加载。
 - **Redis 是注册功能的硬依赖**（验证码、重发限制、每日上限都存这里），必须先起好。
+- `DEEPSEEK_API_KEY` 从 <https://platform.deepseek.com/api_keys> 申请（`sk-` 开头，
+  只显示一次）。**平台要先充值**，余额为 0 时接口返回 402 `Insufficient Balance`。
+  填法、验证方式和成本控制见 `deploy/DEPLOY-DOCKER.md` §8。
 
 #### 数据库迁移（Flyway）
 
@@ -396,11 +399,16 @@ mvn test
 
 ## 九、部署（服务器）
 
+> 有两条互相独立的路线，产物是同一个单体 jar，**二选一**：
+>
+> - **Docker（推荐）**：`deploy/DEPLOY-DOCKER.md` —— 服务器只装 Docker，MySQL/Redis/Nginx 全跑容器，3306/6379/8081 不映射到宿主机
+> - **裸机**：本文以下几节 + `deploy/DEPLOY-ALIYUN.md` —— systemd + 本机 MySQL/Redis/Nginx
+
 ### 1. 构建物
 
 ```powershell
 .\build.ps1 -SkipTests
-# 产物：deepusecode/target/deepusecode-0.0.1-SNAPSHOT.jar（约 55MB，含前端）
+# 产物：deepusecode/target/deepusecode-0.0.1-SNAPSHOT.jar（约 66MB，含前端）
 ```
 
 ### 2. 服务器目录结构
@@ -436,6 +444,8 @@ sudo nginx -t && sudo systemctl reload nginx
 - `proxy_buffering off;` / `gzip off;` —— 否则流式对话会变成一次性吐出
 - `proxy_read_timeout 300s;` —— 必须大于后端 `SseEmitter` 的 180s 超时
 - `proxy_set_header X-Forwarded-For ...` —— 登录限流按真实 IP 计数，少了这个头所有人共用代理 IP 的额度
+- **server 级 `proxy_read_timeout 180s`** —— 默认只有 60s，而生成角色/同步对话要等 DeepSeek
+  （60~90s 很常见），用默认值会被提前掐断返回 504，而后端其实已经成功、额度也已扣掉
 
 ### 5. 上线自检清单
 

@@ -49,3 +49,11 @@ application-local.properties
 # ---- 运行时产物 ----
 logs/
 .data/
+
+# ---- Docker 部署证书（绝不进仓库）----
+deploy/docker/certs/*
+!deploy/docker/certs/.gitkeep
+
+# ---- 部署传输包 ----
+*.tar.gz
+deepusecode-deploy.tar.gz

@@ -1,0 +1,26 @@
+# 只放打包好的单体 jar 和相关文件进构建上下文，
+# 否则会把 node_modules（几百 MB）和 .git 一起发给 dockerd，构建慢十几倍。
+.git
+.gitignore
+.build
+.data
+logs
+.vscode
+.idea
+
+# 前端源码与产物：jar 里已经有了，镜像不需要
+hello
+
+# 后端源码与测试产物：镜像只需要 target 下的那个 jar
+deepusecode/src
+deepusecode/target/classes
+deepusecode/target/test-classes
+deepusecode/target/surefire-reports
+deepusecode/target/generated-sources
+deepusecode/target/generated-test-sources
+deepusecode/target/maven-*
+deepusecode/target/*.jar.original
+deepusecode/target/*.jar
+
+# 但把正式产物放回来（顺序在忽略之后，Dockerfile 里 COPY 的就是它）
+!deepusecode/target/deepusecode-0.0.1-SNAPSHOT.jar
