@@ -66,7 +66,7 @@ public class QuestionSetController {
     }
 
     /**
-     * 一键导入公开题集到我名下（走登录态，所以放在 /api/sets 下而不是 /api/explore）。
+     * 一键导入公开模板到我名下（走登录态，所以放在 /api/sets 下而不是 /api/explore）。
      */
     @PostMapping("/import/{publicSetId}")
     public ApiResponse<SetDetailVO> importSet(@PathVariable Long publicSetId) {

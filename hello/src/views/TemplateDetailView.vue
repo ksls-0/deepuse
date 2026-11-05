@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <AppNavbar :title="template.name || '模板详情'" back-to="/templates" />
+    <AppNavbar :title="template.name || '角色详情'" back-to="/templates" />
 
     <main class="content">
       <p v-if="error" class="alert error">{{ error }}</p>
@@ -9,9 +9,9 @@
 
       <template v-else-if="template.id">
         <div v-if="template.takenDown" class="takedown-banner">
-          <strong>该模板已被下架</strong>
+          <strong>该角色已被下架</strong>
           <span>原因：{{ template.takedownReason || '未填写' }}</span>
-          <span>下架后不会出现在模板广场，他人也无法使用；如有异议请联系管理员。</span>
+          <span>下架后不会出现在角色广场，他人也无法使用；如有异议请联系管理员。</span>
         </div>
 
         <div class="toolbar">
@@ -35,7 +35,7 @@
 
         <section v-else class="edit-card">
           <div class="field">
-            <label>模板名称</label>
+            <label>角色名称</label>
             <input v-model.trim="editForm.name" type="text" maxlength="80" />
           </div>
           <div class="field">
@@ -51,7 +51,7 @@
         </section>
 
         <p class="danger-zone">
-          <button class="link-danger" @click="remove">删除这个模板</button>
+          <button class="link-danger" @click="remove">删除这个角色</button>
         </p>
       </template>
     </main>
@@ -104,7 +104,7 @@ function toggleEdit() {
 
 async function saveEdit() {
   if (!editForm.name) {
-    error.value = '模板名称不能为空';
+    error.value = '角色名称不能为空';
     return;
   }
   if (!editForm.content) {
@@ -136,7 +136,7 @@ async function toggleVisibility() {
   try {
     const updated = await templateApi.setVisibility(template.id, next);
     Object.assign(template, updated);
-    notice.value = next === 1 ? '已公开到模板广场' : '已设为私密';
+    notice.value = next === 1 ? '已公开到角色广场' : '已设为私密';
   } catch (e) {
     error.value = e.message;
   }
@@ -156,7 +156,7 @@ async function startChat() {
 }
 
 async function remove() {
-  if (!confirm(`确定删除模板「${template.name}」吗？`)) return;
+  if (!confirm(`确定删除角色「${template.name}」吗？`)) return;
   try {
     await templateApi.remove(template.id);
     router.push('/templates');

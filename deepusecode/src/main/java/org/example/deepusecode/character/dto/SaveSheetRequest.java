@@ -30,7 +30,7 @@ public class SaveSheetRequest {
     @Size(max = 1000, message = "补充说明不能超过 1000 个字符")
     private String note;
 
-    /** 可选，用来区分同一题集下的多份答卷 */
+    /** 可选，用来区分同一模板下的多份答卷 */
     @Size(max = 60, message = "版本名不能超过 60 个字符")
     private String label;
 

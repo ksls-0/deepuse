@@ -16,7 +16,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 题集：用户创作的一组问题，是可复用、可公开、可被他人导入的资产。
+ * 模板：用户创作的一组问题，是可复用、可公开、可被他人导入的资产。
  */
 @Entity
 @Table(name = "question_set", indexes = {

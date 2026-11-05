@@ -1,13 +1,13 @@
 <template>
   <div class="page">
-    <AppNavbar :title="isEdit ? '编辑题集' : '新建题集'" back-to="/sets" />
+    <AppNavbar :title="isEdit ? '编辑模板' : '新建模板'" back-to="/sets" />
 
     <main class="content">
       <p v-if="error" class="alert error">{{ error }}</p>
 
       <section class="card">
         <div class="field">
-          <label>题集标题 <span class="req">*</span></label>
+          <label>模板标题 <span class="req">*</span></label>
           <input v-model.trim="form.title" type="text" maxlength="120" placeholder="例如：如果让你描述自己" />
         </div>
 
@@ -124,7 +124,7 @@ async function save() {
   error.value = '';
 
   if (!form.title) {
-    error.value = '请填写题集标题';
+    error.value = '请填写模板标题';
     return;
   }
   // 保留 id：有 id 的是"原地修改"，没有的是"新增"，未出现的由服务端删除

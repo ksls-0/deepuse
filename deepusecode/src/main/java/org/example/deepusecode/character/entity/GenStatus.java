@@ -1,7 +1,7 @@
 package org.example.deepusecode.character.entity;
 
 /**
- * 模板生成状态。0 预留给以后改成异步生成时使用。
+ * 角色生成状态。0 预留给以后改成异步生成时使用。
  */
 public final class GenStatus {
 

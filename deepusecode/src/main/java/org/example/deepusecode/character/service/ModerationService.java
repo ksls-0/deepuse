@@ -43,14 +43,14 @@ public class ModerationService {
         LocalDateTime now = LocalDateTime.now();
         if (ReportTargetType.SET.equals(targetType)) {
             QuestionSet set = setRepository.findByIdAndDeleted(targetId, NOT_DELETED)
-                    .orElseThrow(() -> BusinessException.notFound("题集不存在或已删除"));
+                    .orElseThrow(() -> BusinessException.notFound("模板不存在或已删除"));
             set.setTakenDown(Moderation.TAKEN_DOWN);
             set.setTakedownReason(truncate(reason));
             set.setTakenDownAt(now);
             setRepository.save(set);
         } else {
             AiTemplate template = templateRepository.findByIdAndDeleted(targetId, NOT_DELETED)
-                    .orElseThrow(() -> BusinessException.notFound("模板不存在或已删除"));
+                    .orElseThrow(() -> BusinessException.notFound("角色不存在或已删除"));
             template.setTakenDown(Moderation.TAKEN_DOWN);
             template.setTakedownReason(truncate(reason));
             template.setTakenDownAt(now);
@@ -63,14 +63,14 @@ public class ModerationService {
     public void restore(String targetType, Long targetId, Long adminId) {
         if (ReportTargetType.SET.equals(targetType)) {
             QuestionSet set = setRepository.findByIdAndDeleted(targetId, NOT_DELETED)
-                    .orElseThrow(() -> BusinessException.notFound("题集不存在或已删除"));
+                    .orElseThrow(() -> BusinessException.notFound("模板不存在或已删除"));
             set.setTakenDown(Moderation.NOT_TAKEN_DOWN);
             set.setTakedownReason(null);
             set.setTakenDownAt(null);
             setRepository.save(set);
         } else {
             AiTemplate template = templateRepository.findByIdAndDeleted(targetId, NOT_DELETED)
-                    .orElseThrow(() -> BusinessException.notFound("模板不存在或已删除"));
+                    .orElseThrow(() -> BusinessException.notFound("角色不存在或已删除"));
             template.setTakenDown(Moderation.NOT_TAKEN_DOWN);
             template.setTakedownReason(null);
             template.setTakenDownAt(null);

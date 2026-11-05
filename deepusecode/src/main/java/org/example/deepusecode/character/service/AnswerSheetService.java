@@ -34,7 +34,7 @@ public class AnswerSheetService {
     private final AnswerRepository answerRepository;
     private final PersonaFieldRepository personaFieldRepository;
 
-    /** 某个题集下我的全部答卷（支持一人多份） */
+    /** 某个模板下我的全部答卷（支持一人多份） */
     @Transactional(readOnly = true)
     public List<SheetBriefVO> listMine(Long userId, Long setId) {
         questionSetService.loadAnswerable(userId, setId);
@@ -149,7 +149,7 @@ public class AnswerSheetService {
                 }
                 Question question = questionById.get(item.getQuestionId());
                 if (question == null) {
-                    throw BusinessException.badRequest("答案中的题目不属于该题集");
+                    throw BusinessException.badRequest("答案中的题目不属于该模板");
                 }
                 Answer answer = new Answer();
                 answer.setSheetId(sheet.getId());
@@ -167,7 +167,7 @@ public class AnswerSheetService {
         AnswerSheet sheet = sheetRepository.findByIdAndUserId(sheetId, userId)
                 .orElseThrow(() -> BusinessException.notFound("答卷不存在"));
         if (!sheet.getSetId().equals(setId)) {
-            throw BusinessException.badRequest("该答卷不属于指定题集");
+            throw BusinessException.badRequest("该答卷不属于指定模板");
         }
         return sheet;
     }

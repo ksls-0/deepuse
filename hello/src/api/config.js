@@ -6,7 +6,7 @@ import axios from 'axios';
  */
 const api = axios.create({
   baseURL: process.env.VUE_APP_API_BASE_URL || '',
-  // 同步生成角色模板可能要 15~60s，超时必须给足
+  // 同步生成角色可能要 15~60s，超时必须给足
   timeout: 120000,
   headers: { 'Content-Type': 'application/json' }
 });

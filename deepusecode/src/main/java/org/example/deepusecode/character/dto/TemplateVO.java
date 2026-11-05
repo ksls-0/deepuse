@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 模板详情。structured 是解析后的角色卡 JSON（name/personality/exampleDialogue...），
+ * 角色详情。structured 是解析后的角色卡 JSON（name/personality/exampleDialogue...），
  * 前端直接按对象渲染；content 是最终给模型用的 system prompt。
  */
 @Data

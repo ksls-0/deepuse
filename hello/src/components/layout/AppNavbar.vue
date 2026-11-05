@@ -79,8 +79,8 @@ const links = computed(() => {
   }
   const base = [
     { to: '/home', label: '首页' },
-    { to: '/sets', label: '我的题集' },
-    { to: '/templates', label: '我的模板' },
+    { to: '/sets', label: '我的模板' },
+    { to: '/templates', label: '我的角色' },
     { to: '/conversations', label: '对话' },
     { to: '/explore', label: '广场' }
   ];

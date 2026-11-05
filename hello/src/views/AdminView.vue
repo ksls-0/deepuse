@@ -31,7 +31,7 @@
         <article v-for="r in items" :key="r.id" class="card">
           <header class="card-head">
             <span :class="['type-tag', r.targetType === 'SET' ? 'set' : 'template']">
-              {{ r.targetType === 'SET' ? '题集' : '模板' }}
+              {{ r.targetType === 'SET' ? '模板' : '角色' }}
             </span>
             <span class="target-title">{{ r.targetTitle }}</span>
             <span v-if="r.targetTakenDown" class="down-tag">已下架</span>

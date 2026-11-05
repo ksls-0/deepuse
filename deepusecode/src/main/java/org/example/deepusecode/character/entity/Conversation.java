@@ -16,7 +16,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 一次对话会话：某个用户拿某个模板开的一段聊天。
+ * 一次对话会话：某个用户拿某个角色开的一段聊天。
  */
 @Entity
 @Table(name = "conversation", indexes = {

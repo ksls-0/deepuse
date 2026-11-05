@@ -48,7 +48,7 @@ public class User {
     @Column(name = "password", nullable = false, length = 100)
     private String password;
 
-    /** USER / ADMIN。角色在签发 JWT 时写入 claim，改动后需要重新登录才生效。 */
+    /** USER / ADMIN。权限角色在签发 JWT 时写入 claim，改动后需要重新登录才生效。 */
     @Column(name = "role", nullable = false, length = 20)
     private String role = Role.USER;
 

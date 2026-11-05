@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <AppNavbar :title="detail.title || '题集详情'" back-to="/explore" />
+    <AppNavbar :title="detail.title || '模板详情'" back-to="/explore" />
 
     <main class="content">
       <p v-if="error" class="alert error">{{ error }}</p>
@@ -33,7 +33,7 @@
 
         <footer class="footer">
           <template v-if="detail.mine">
-            <p class="mine-tip">这是你自己的题集。</p>
+            <p class="mine-tip">这是你自己的模板。</p>
             <router-link :to="`/sets/${detail.id}/fill`" class="primary-btn">去填写答卷</router-link>
           </template>
           <template v-else>

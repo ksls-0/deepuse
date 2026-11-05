@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class CreateConversationRequest {
 
-    @NotNull(message = "模板 id 不能为空")
+    @NotNull(message = "角色 id 不能为空")
     private Long templateId;
 }

@@ -1,7 +1,7 @@
 # 角色工坊（deepusecode + hello）
 
-「自己写问题 → 自己作答 → AI 生成角色模板 → 站内对话」的 UGC 闭环。
-题集与模板都可以选择公开，进入广场供他人浏览、一键导入或直接使用。
+「自己写问题 → 自己作答 → AI 生成角色 → 站内对话」的 UGC 闭环。
+模板与角色都可以选择公开，进入广场供他人浏览、一键导入或直接使用。
 
 ```
 deepusecode/   Spring Boot 3.2.5 + Java 17，端口 8081
@@ -33,7 +33,7 @@ REDIS_HOST=localhost                     # 注册验证码依赖 Redis
 REDIS_PORT=6379
 REDIS_PASSWORD=
 DEEPSEEK_API_KEY=                        # 留空则走 mock，链路仍可跑通
-AI_DAILY_GENERATION_LIMIT=20             # 每用户 24h 内最多生成多少次角色模板
+AI_DAILY_GENERATION_LIMIT=20             # 每用户 24h 内最多生成多少次角色
 APP_ADMIN_ACCOUNTS=                     # 管理员账号白名单，逗号分隔
 ```
 
@@ -48,7 +48,7 @@ schema 现在由 **Flyway 单一管理**，`spring.jpa.hibernate.ddl-auto=valida
 
 ```
 src/main/resources/db/migration/V1__init.sql      ← 8 张业务表的完整结构（含唯一索引）
-src/main/resources/db/migration/V2__moderation.sql ← 用户角色、内容下架字段、举报表
+src/main/resources/db/migration/V2__moderation.sql ← 权限角色、内容下架字段、举报表
 src/main/resources/db/migration/V3__persona_fields.sql ← 自定义基础信息类别表（老数据自动迁移）
 ```
 
@@ -114,7 +114,7 @@ npm run serve
 | 就绪探针 | `GET /actuator/health/readiness` |
 | 存活探针 | `GET /actuator/health/liveness` |
 | 应用日志 | `deepusecode/logs/deepusecode.log`（50MB 滚动，保留 14 天，总量上限 1GB） |
-| 生成/对话耗时 | 日志里的 `模板生成完成: ... 耗时=xxms` / `流式对话完成: ... 耗时=xxms` |
+| 生成/对话耗时 | 日志里的 `角色生成完成: ... 耗时=xxms` / `流式对话完成: ... 耗时=xxms` |
 | JWT 密钥指纹 | 启动日志 `JWT 密钥已加载，指纹 sha256:xxxxxxxx`（只打印指纹，不泄漏密钥） |
 
 > 除 `health`、`info` 外的 actuator 端点**未暴露**，`/actuator/env` 等访问不到。
@@ -125,13 +125,13 @@ npm run serve
 | 表 | 说明 |
 |---|---|
 | `app_user` | 用户。**表名不用 `user`**，因为 `user` 在 H2 / PostgreSQL 是保留字 |
-| `question_set` | 题集（可复用资产），带 `visibility` 与 `import_count` |
-| `question` | 题集下的有序问题 |
-| `answer_sheet` | 一次作答。**同一用户对同一题集可以有多份**，用于保存不同答案版本；只内置「昵称」一个基础字段 |
+| `question_set` | 模板（可复用资产），带 `visibility` 与 `import_count` |
+| `question` | 模板下的有序问题 |
+| `answer_sheet` | 一次作答。**同一用户对同一模板可以有多份**，用于保存不同答案版本；只内置「昵称」一个基础字段 |
 | `persona_field` | 答卷里的自定义基础信息类别（如 职业/年龄/兴趣），由用户自己定义类别名与内容 |
 | `answer` | 答卷中的单题答案 |
-| `ai_template` | AI 生成的角色模板：`content` 是 system prompt，`raw_json` 是结构化角色卡 |
-| `conversation` | 一次会话（用户 + 模板） |
+| `ai_template` | AI 生成的角色：`content` 是 system prompt，`raw_json` 是结构化角色卡 |
+| `conversation` | 一次会话（用户 + 角色） |
 | `message` | 会话消息，`role` 为 user / assistant |
 
 可见性统一用 `0=私密 / 1=公开`（`Integer` 而非 `Boolean`，避免 Hibernate 对 `is_` 前缀的映射坑）。
@@ -159,7 +159,7 @@ GET  /user/me                                              当前用户
 
 ### AI 生成配额
 
-每次成功生成角色模板消耗 1 次额度，按用户 24 小时滚动窗口计数（Redis `ai:quota:gen:{userId}`）。
+每次成功生成角色消耗 1 次额度，按用户 24 小时滚动窗口计数（Redis `ai:quota:gen:{userId}`）。
 
 - 默认上限 20 次/24h，用 `AI_DAILY_GENERATION_LIMIT` 调整，`<= 0` 表示不限量（本地压测用）
 - 超额返回 **429**：`今日 AI 生成次数已用完（上限 N 次），请明天再试`
@@ -190,14 +190,14 @@ POST /api/admin/{SET|TEMPLATE}/{id}/restore                                     
 **举报规则**：同一人对同一内容只能举报一次（唯一索引兜底，刷举报会返回 409）；
 不能举报自己的内容；一次`TAKEDOWN`会把同一内容的其他待处理举报一并结掉。
 
-**管理员身份**：通过配置白名单授予，不需要在数据库里手工改角色。
+**管理员身份**：通过配置白名单授予，不需要在数据库里手工改权限角色。
 
 ```properties
 app.admin.accounts=admin@example.com,13800138000
 ```
 
 白名单里的账号注册即成为管理员；已存在的账号在启动时被自动提升。
-角色写在 JWT 的 claim 里，**改动角色后需要重新登录**才生效。
+权限角色写在 JWT 的 claim 里，**改动权限角色后需要重新登录**才生效。
 
 ### 真实发信
 
@@ -231,7 +231,7 @@ MAIL_FROM=                        # 选填，发件人展示地址
 `SmsCodeSender.send()`，业务代码无需改动。
 
 
-### 题集（需登录）
+### 模板（需登录）
 ```
 POST   /api/sets                        {title, description, questions:[{content}]}
 GET    /api/sets/mine?page&size
@@ -253,10 +253,10 @@ GET    /api/sets/{setId}/sheets             我的全部答卷
 POST   /api/sets/{setId}/sheets             新建一份空白答卷
 GET    /api/sets/{setId}/sheet?sheetId=     取答卷（不传取最新；没有则返回空白结构）
 PUT    /api/sets/{setId}/sheet?sheetId=     保存答卷
-POST   /api/sets/{setId}/generate           同步生成模板 {sheetId?}
+POST   /api/sets/{setId}/generate           同步生成角色 {sheetId?}
 ```
 
-### 模板（需登录）
+### 角色（需登录）
 ```
 GET    /api/templates/mine?page&size
 GET    /api/templates/{id}
@@ -324,15 +324,15 @@ DELETE /api/conversations/{id}
 
 **② 问答**
 
-回答题集里的问题。留空的题不会进入 AI 的角色设定。
+回答模板里的问题。留空的题不会进入 AI 的角色设定。
 
-> 设计取舍：内置字段只保留昵称，是因为"角色需要哪些维度"因题集而异——
+> 设计取舍：内置字段只保留昵称，是因为"角色需要哪些维度"因模板而异——
 > 描述虚拟偶像时要"代表作"，描述程序员时要"技术栈"，写死年龄段和职业反而限制表达。
 > 老版本的 `persona_age` / `persona_occupation` 在 V3 迁移时会自动转成「年龄」「职业」两个自定义类别，不丢数据。
 
 ## 六、AI 生成流程
 
-1. 前端提交答卷 → 后端拼 `CharacterPromptContext`（题集 + 问答 + 角色基本信息）。
+1. 前端提交答卷 → 后端拼 `CharacterPromptContext`（模板 + 问答 + 角色基本信息）。
 2. `PromptBuilder` 生成要求模型输出固定 JSON 结构的提示词。
 3. `DeepSeekClient` 调 `/chat/completions`，带 `response_format: json_object`。
 4. `CardJsonParser` 做三级容错解析：直接解析 → 剥 ```` ```json ```` 围栏 → 截取首尾大括号。
@@ -357,7 +357,7 @@ mvn test
 
 - 使用 H2 内存库（MySQL 兼容模式），**不依赖本地 MySQL**。
 - `ApiFlowIntegrationTest` 共 11 个用例：
-  1. `fullJourney` — 注册 → 建题集 → 作答 → **改题集后答案不丢（id 稳定性回归）** →
+  1. `fullJourney` — 注册 → 建模板 → 作答 → **改模板后答案不丢（id 稳定性回归）** →
      mock 生成 → 公开 → 游客浏览（校验账号已脱敏）→ 他人导入 → 同步对话两轮（校验上下文）→
      越权拦截 → 删除
   2. `removingQuestionCleansAnswers` — 删题时连带清理答案，保留题的 id 与答案不变
@@ -486,7 +486,7 @@ curl -s https://your-domain.com/actuator/health
 - [x] ~~注册接口无验证码/无限流~~（已完成：邮箱/手机号双通道 + Redis 验证码与限流）- [x] ~~AI 生成无配额~~（已完成：按用户 24h 滚动窗口限次，Redis 计数）
 - [ ] 一键导入无频率限制，广场 `sort=hot` 按 `importCount` 排序，理论上可被刷榜。
 - [x] ~~广场无审核、举报、下架机制~~（已完成：举报 + 管理后台 + 强制下架/恢复）
-- [ ] 软删除不彻底：删题集不级联清理 `answer_sheet` / `answer`。
-- [ ] 列表接口仍有少量 N+1（模板 tagline 每次解析 raw_json，可落成一列）。
+- [ ] 软删除不彻底：删模板不级联清理 `answer_sheet` / `answer`。
+- [ ] 列表接口仍有少量 N+1（角色 tagline 每次解析 raw_json，可落成一列）。
 - [ ] 无单元测试（`CardJsonParser`、`PromptBuilder`、`JwtUtil`、`AccountMasker`、`LoginAttemptService` 最值得补）；前端零测试。
 - [ ] JWT 有效期 24h 且无法主动失效（无黑名单 / refresh token）。

@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <AppNavbar :title="template.name || '模板详情'" back-to="/explore" />
+    <AppNavbar :title="template.name || '角色详情'" back-to="/explore" />
 
     <main class="content">
       <p v-if="error" class="alert error">{{ error }}</p>
@@ -11,13 +11,13 @@
 
         <p class="meta">
           by {{ template.ownerAccount || '匿名' }}
-          <template v-if="template.setTitle"> · 来自题集《{{ template.setTitle }}》</template>
+          <template v-if="template.setTitle"> · 来自模板《{{ template.setTitle }}》</template>
           · 被使用 {{ template.useCount }} 次
         </p>
 
         <footer class="footer">
           <template v-if="template.mine">
-            <p class="tip">这是你自己的模板。</p>
+            <p class="tip">这是你自己的角色。</p>
             <router-link :to="`/templates/${template.id}`" class="ghost-btn">去管理</router-link>
           </template>
           <template v-else>
@@ -25,7 +25,7 @@
             <div class="action-group">
               <button class="report-link" type="button" @click="openReport">举报</button>
               <button class="primary-btn" :disabled="starting" @click="startChat">
-                {{ starting ? '创建会话中…' : '使用此模板对话' }}
+                {{ starting ? '创建会话中…' : '使用此角色对话' }}
               </button>
             </div>
           </template>

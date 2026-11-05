@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 答卷与“由答卷生成模板”。路径挂在题集下，语义更自然。
+ * 答卷与“由答卷生成角色”。路径挂在模板下，语义更自然。
  */
 @RestController
 @RequestMapping("/api/sets/{setId}")
@@ -62,7 +62,7 @@ public class AnswerSheetController {
         return ApiResponse.success("已保存", answerSheetService.save(CurrentUser.id(), setId, sheetId, request));
     }
 
-    /** 同步生成角色模板（可能耗时数十秒） */
+    /** 同步生成角色（可能耗时数十秒） */
     @PostMapping("/generate")
     public ApiResponse<TemplateVO> generate(@PathVariable Long setId,
                                             @RequestBody(required = false) GenerateTemplateRequest request) {

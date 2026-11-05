@@ -16,7 +16,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * AI 生成的角色模板。
+ * AI 生成的角色。
  * <p>content 是拼好的 system prompt（对话时直接注入）；
  * rawJson 是结构化角色卡（前端渲染姓名、性格标签、示例对话等）。</p>
  */

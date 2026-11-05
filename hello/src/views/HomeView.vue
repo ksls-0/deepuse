@@ -11,19 +11,19 @@
       <section class="flow">
         <div class="step">
           <span class="num">1</span>
-          <h3>创建题集</h3>
+          <h3>创建模板</h3>
           <p>自己定义一组问题，随时编辑增删</p>
         </div>
         <div class="arrow">→</div>
         <div class="step">
           <span class="num">2</span>
           <h3>填写答卷</h3>
-          <p>同一题集可保存多份不同答案</p>
+          <p>同一模板可保存多份不同答案</p>
         </div>
         <div class="arrow">→</div>
         <div class="step">
           <span class="num">3</span>
-          <h3>生成模板</h3>
+          <h3>生成角色</h3>
           <p>DeepSeek 依问答产出结构化角色卡</p>
         </div>
         <div class="arrow">→</div>
@@ -36,20 +36,20 @@
 
       <section class="actions">
         <router-link to="/sets/new" class="action-card primary">
-          <h3>＋ 新建题集</h3>
+          <h3>＋ 新建模板</h3>
           <p>从零开始写一组问题</p>
         </router-link>
         <router-link to="/sets" class="action-card">
-          <h3>我的题集</h3>
-          <p>{{ counts.sets }} 个题集</p>
+          <h3>我的模板</h3>
+          <p>{{ counts.sets }} 个模板</p>
         </router-link>
         <router-link to="/templates" class="action-card">
-          <h3>我的模板</h3>
-          <p>{{ counts.templates }} 个角色模板</p>
+          <h3>我的角色</h3>
+          <p>{{ counts.templates }} 个角色</p>
         </router-link>
         <router-link to="/explore" class="action-card">
           <h3>去广场看看</h3>
-          <p>浏览他人公开的题集与模板</p>
+          <p>浏览他人公开的模板与角色</p>
         </router-link>
       </section>
 

@@ -4,7 +4,7 @@
 
     <main class="content">
       <div v-if="takedown" class="takedown-banner">
-        <strong>该题集已被下架</strong>
+        <strong>该模板已被下架</strong>
         <span>原因：{{ takedown.reason || '未填写' }}</span>
         <span>下架后不会出现在广场，他人无法导入；你仍可继续编辑自己的内容。</span>
       </div>
@@ -54,7 +54,7 @@
         <section v-show="step === 1" class="card">
           <h2 class="section-title">人物基础信息</h2>
           <p class="section-tip">
-            这些属于「作答者」，同一题集不同人填写会得到不同角色。先设定人物，再去回答下面的问题。
+            这些属于「作答者」，同一模板不同人填写会得到不同角色。先设定人物，再去回答下面的问题。
           </p>
 
           <div class="field">
@@ -113,7 +113,7 @@
         <!-- 第二步：问答 -->
         <section v-show="step === 2" class="card">
           <div class="section-head">
-            <h2 class="section-title">回答题集里的问题</h2>
+            <h2 class="section-title">回答模板里的问题</h2>
             <span class="answered">{{ answeredCount }} / {{ items.length }} 已作答</span>
           </div>
           <p class="section-tip">留空的问题不会进入 AI 的角色设定，建议至少答 3 题。</p>
@@ -150,7 +150,7 @@
               {{ saving ? '保存中…' : '保存答卷' }}
             </button>
             <button class="primary-btn" :disabled="generating || saving" @click="save(true)">
-              {{ generating ? 'AI 生成中，请稍候…' : '生成角色模板' }}
+              {{ generating ? 'AI 生成中，请稍候…' : '生成角色' }}
             </button>
           </template>
         </footer>
@@ -328,7 +328,7 @@ async function save(thenGenerate) {
     }
 
     if (answeredCount.value === 0) {
-      error.value = '请至少回答一个问题再生成模板';
+      error.value = '请至少回答一个问题再生成角色';
       return;
     }
 

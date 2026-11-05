@@ -232,7 +232,7 @@ public class ConversationService {
         return ConversationVO.builder()
                 .id(conversation.getId())
                 .templateId(conversation.getTemplateId())
-                .templateName(templateName == null ? "已失效的模板" : templateName)
+                .templateName(templateName == null ? "已失效的角色" : templateName)
                 .title(conversation.getTitle())
                 .createdAt(conversation.getCreatedAt())
                 .updatedAt(conversation.getUpdatedAt())

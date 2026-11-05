@@ -6,10 +6,10 @@
       <header class="head">
         <div class="tabs">
           <button :class="['tab', { active: tab === 'sets' }]" @click="switchTab('sets')">
-            题集广场
+            模板广场
           </button>
           <button :class="['tab', { active: tab === 'templates' }]" @click="switchTab('templates')">
-            模板广场
+            角色广场
           </button>
         </div>
 
@@ -18,7 +18,7 @@
             v-model.trim="keyword"
             type="search"
             class="search"
-            :placeholder="tab === 'sets' ? '搜索题集标题…' : '搜索模板名称…'"
+            :placeholder="tab === 'sets' ? '搜索模板标题…' : '搜索角色名称…'"
             @keyup.enter="reload"
           />
           <select v-model="sort" class="sort" @change="reload">
@@ -29,8 +29,8 @@
       </header>
 
       <p class="hint">
-        <template v-if="tab === 'sets'">题集是可复用的问题清单，导入后即可填写并生成你自己的角色。</template>
-        <template v-else>模板是别人已经生成好的角色，可直接拿去对话。</template>
+        <template v-if="tab === 'sets'">模板是可复用的问题清单，导入后即可填写并生成你自己的角色。</template>
+        <template v-else>角色是别人已经生成好的角色，可直接拿去对话。</template>
       </p>
 
       <p v-if="error" class="alert error">{{ error }}</p>

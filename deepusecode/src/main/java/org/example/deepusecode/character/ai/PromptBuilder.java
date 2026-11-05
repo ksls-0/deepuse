@@ -14,11 +14,11 @@ public class PromptBuilder {
     public String buildCharacterPrompt(CharacterPromptContext ctx) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("你是一位资深的 AI 角色设定师。下面是一位用户为某个「角色题集」填写的问答，")
+        sb.append("你是一位资深的 AI 角色设定师。下面是一位用户为某个「模板」填写的问答，")
                 .append("请据此创作一个可以直接驱动大模型扮演的角色设定。\n\n");
 
-        sb.append("【题集】");
-        sb.append(nullSafe(ctx.setName(), "未命名题集"));
+        sb.append("【模板】");
+        sb.append(nullSafe(ctx.setName(), "未命名模板"));
         if (hasText(ctx.setDescription())) {
             sb.append(" —— ").append(ctx.setDescription().trim());
         }

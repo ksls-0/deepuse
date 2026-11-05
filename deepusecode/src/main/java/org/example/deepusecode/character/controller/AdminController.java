@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 管理后台。整个 /api/admin/** 在 SecurityConfig 里要求 ADMIN 角色。
+ * 管理后台。整个 /api/admin/** 在 SecurityConfig 里要求 ADMIN 权限。
  */
 @RestController
 @RequestMapping("/api/admin")

@@ -35,7 +35,7 @@ import java.util.function.Consumer;
 /**
  * DeepSeek 客户端（OpenAI 兼容的 chat/completions 协议）。
  * <p>未配置 API Key 时不报错，而是返回结构化的 mock 结果，
- * 让「题集 → 作答 → 生成 → 对话」整条链路在没 key 的情况下也能跑通和演示。
+ * 让「模板 → 作答 → 生成 → 对话」整条链路在没 key 的情况下也能跑通和演示。
  * 降级结果会通过 model = "mock" 明确标识，前端也会提示。</p>
  */
 @Slf4j
@@ -67,7 +67,7 @@ public class DeepSeekClient {
 
     public AiResult generateCharacterCard(String prompt, CharacterPromptContext ctx) {
         if (isDegradedMode()) {
-            log.info("未配置 DeepSeek API Key，生成模板降级为 mock");
+            log.info("未配置 DeepSeek API Key，生成角色降级为 mock");
             return new AiResult(mockCardJson(ctx), MOCK_MODEL, true);
         }
 
@@ -291,7 +291,7 @@ public class DeepSeekClient {
         String name = ctx.displayName();
 
         root.put("name", name);
-        root.put("tagline", "样例模板 · 未配置 DeepSeek Key 时的占位人设");
+        root.put("tagline", "样例角色 · 未配置 DeepSeek Key 时的占位人设");
 
         ArrayNode personality = root.putArray("personality");
         personality.add("友善直接");
@@ -306,8 +306,8 @@ public class DeepSeekClient {
         for (CharacterPromptContext.Field field : ctx.filledFields()) {
             bg.append(field.label()).append("：").append(field.value()).append("；");
         }
-        bg.append("这个角色由题集《")
-                .append(ctx.setName() == null ? "未命名题集" : ctx.setName())
+        bg.append("这个角色由模板《")
+                .append(ctx.setName() == null ? "未命名模板" : ctx.setName())
                 .append("》的 ").append(ctx.answeredCount()).append(" 条问答拼装而成。")
                 .append("（当前为 mock 数据，配置 DEEPSEEK_API_KEY 后会由模型真实生成。）");
         root.put("background", bg.toString());
@@ -375,7 +375,7 @@ public class DeepSeekClient {
             return prefix + "你好，我在。想聊些什么？";
         }
         if (msg.contains("你是谁")) {
-            return prefix + "我是根据你填写的题集生成的 AI 角色。配置真实 API Key 之后，我会用完整的角色设定来回应你。";
+            return prefix + "我是根据你填写的模板生成的 AI 角色。配置真实 API Key 之后，我会用完整的角色设定来回应你。";
         }
         return prefix + "我收到了你的消息：「" + trim(msg, 60) + "」。"
                 + "配置 DEEPSEEK_API_KEY 后，这里会由模型按角色设定真实作答。";

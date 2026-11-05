@@ -17,7 +17,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    /** 明确禁止使用的占位密钥，防止把文档模板里的值带上线 */
+    /** 明确禁止使用的占位密钥，防止把文档样例里的值带上线 */
     private static final java.util.Set<String> REJECTED_SECRETS = java.util.Set.of(
             "dev-local-only-secret-please-replace-in-production-2026",
             "change-me-at-least-32-characters-long"
@@ -43,7 +43,7 @@ public class JwtUtil {
 
         if (REJECTED_SECRETS.contains(secret.trim())) {
             throw new IllegalStateException(
-                    "jwt.secret 仍是模板里的占位值，必须替换成真实随机密钥后再启动。"
+                    "jwt.secret 仍是文档样例里的占位值，必须替换成真实随机密钥后再启动。"
                             + "生成方式：openssl rand -base64 48");
         }
 
@@ -80,7 +80,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .subject(account)
                 .claim("userId", userId)
-                // 角色写进 claim，鉴权时无需再查库；代价是改角色后需要重新登录
+                // 权限角色写进 claim，鉴权时无需再查库；代价是改权限后需要重新登录
                 .claim("role", role == null || role.isBlank() ? Role.USER : role)
                 .issuedAt(now)
                 .expiration(expiry)
@@ -88,7 +88,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    /** 从 claim 读角色，读不到按普通用户处理 */
+    /** 从 claim 读权限角色，读不到按普通用户处理 */
     public String extractRole(Claims claims) {
         Object raw = claims.get("role");
         return raw instanceof String text && !text.isBlank() ? text : Role.USER;

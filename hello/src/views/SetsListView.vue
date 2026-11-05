@@ -1,14 +1,14 @@
 <template>
   <div class="page">
-    <AppNavbar title="我的题集" :show-back="false" />
+    <AppNavbar title="我的模板" :show-back="false" />
 
     <main class="content">
       <header class="head">
         <div>
-          <h1>我的题集</h1>
+          <h1>我的模板</h1>
           <p class="hint">共 {{ total }} 个 · 点击卡片去填写答卷</p>
         </div>
-        <router-link to="/sets/new" class="primary-btn">＋ 新建题集</router-link>
+        <router-link to="/sets/new" class="primary-btn">＋ 新建模板</router-link>
       </header>
 
       <p v-if="error" class="alert error">{{ error }}</p>
@@ -16,8 +16,8 @@
       <div v-if="loading" class="empty">加载中…</div>
 
       <div v-else-if="sets.length === 0" class="empty">
-        <p>还没有题集</p>
-        <router-link to="/sets/new" class="primary-btn">创建第一个题集</router-link>
+        <p>还没有模板</p>
+        <router-link to="/sets/new" class="primary-btn">创建第一个模板</router-link>
       </div>
 
       <div v-else class="grid">
@@ -84,7 +84,7 @@ async function toggleVisibility(set) {
 }
 
 async function remove(set) {
-  if (!confirm(`确定删除题集「${set.title}」吗？已生成的模板不受影响。`)) return;
+  if (!confirm(`确定删除模板「${set.title}」吗？已生成的角色不受影响。`)) return;
   try {
     await setApi.remove(set.id);
     await load();

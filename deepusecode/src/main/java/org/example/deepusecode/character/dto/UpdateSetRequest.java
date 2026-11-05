@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 public class UpdateSetRequest {
 
-    @NotBlank(message = "题集标题不能为空")
+    @NotBlank(message = "模板标题不能为空")
     @Size(max = 120, message = "标题不能超过 120 个字符")
     private String title;
 

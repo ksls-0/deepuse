@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -82,6 +83,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoHandler(NoHandlerFoundException ex) {
+        return build(ErrorCode.NOT_FOUND, "接口不存在");
+    }
+
+    /**
+     * Spring 6 默认不再匹配结尾斜杠，/api/sets/ 这类请求会落到静态资源处理器并抛
+     * NoResourceFoundException。它本质是 404，不该被兜底成 500。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResource(NoResourceFoundException ex,
+                                                              HttpServletRequest request) {
+        log.info("路径不存在 [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
         return build(ErrorCode.NOT_FOUND, "接口不存在");
     }
 

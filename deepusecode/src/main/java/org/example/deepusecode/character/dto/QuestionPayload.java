@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 题集里的一个问题。更新题集时带上 id 表示"保留并修改这一题"，
+ * 模板里的一个问题。更新模板时带上 id 表示"保留并修改这一题"，
  * 不带 id 表示新增；服务端按 id 做 diff，从而保住 question.id 不变，
  * 不会让已保存答卷里的 question_id 失效。
  */

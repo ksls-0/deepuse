@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 端到端接口验证：题集 → 作答 → AI 生成模板 → 公开 → 他人导入 → 站内对话。
+ * 端到端接口验证：模板 → 作答 → AI 生成角色 → 公开 → 他人导入 → 站内对话。
  * 跑在内存 H2 上，未配置 DeepSeek key 时走 mock，整条链路依然可验证。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -78,7 +78,7 @@ class ApiFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("完整用户旅程：创作题集 → 作答 → 改题集 → AI 生成 → 公开 → 导入 → 对话")
+    @DisplayName("完整用户旅程：创作模板 → 作答 → 改模板 → AI 生成 → 公开 → 导入 → 对话")
     void fullJourney() {
         // ---------- 1. 未登录访问受保护接口应 401 ----------
         Res anon = get("/api/sets/mine", null);
@@ -101,7 +101,7 @@ class ApiFlowIntegrationTest {
                 Map.of("email", "author@example.com", "password", "wrong-pass"), null);
         assertEquals(401, badLogin.status(), "密码错误应返回 401");
 
-        // ---------- 3. A 创建题集 ----------
+        // ---------- 3. A 创建模板 ----------
         long setId = createSet(tokenA, "关于我的一组问题",
                 List.of("你最喜欢的书是什么？", "你最近在忙什么？", "你的口头禅是什么？"));
 
@@ -115,7 +115,7 @@ class ApiFlowIntegrationTest {
                 List.of("《三体》，反复读了三遍", "在做一个角色对话的小产品", "先把最小闭环跑通"));
         assertTrue(sheetId > 0);
 
-        // ---------- 5. 关键回归：改题集标题/内容后，答卷不能丢 ----------
+        // ---------- 5. 关键回归：改模板标题/内容后，答卷不能丢 ----------
         Res renamed = put("/api/sets/" + setId, Map.of(
                 "title", "关于我的一组问题（已改名）",
                 "description", "改描述也不行",
@@ -124,54 +124,54 @@ class ApiFlowIntegrationTest {
                         "你最近在忙什么？",
                         "你的口头禅是什么？"))
         ), tokenA);
-        assertTrue(renamed.ok(), "更新题集失败: " + renamed.message());
+        assertTrue(renamed.ok(), "更新模板失败: " + renamed.message());
         assertEquals("关于我的一组问题（已改名）", renamed.data().path("title").asText());
-        assertEquals(questionIds, qidsFromDetail(renamed), "更新题集不应改变 question.id");
+        assertEquals(questionIds, qidsFromDetail(renamed), "更新模板不应改变 question.id");
 
         Res sheetAfterRename = get("/api/sets/" + setId + "/sheet", tokenA);
         JsonNode answersAfterRename = sheetAfterRename.data().path("answers");
         assertEquals(3, answersAfterRename.size());
         for (JsonNode item : answersAfterRename) {
             assertFalse(item.path("content").asText("").isBlank(),
-                    "改题集后原有答案不应丢失：" + item.path("question").asText());
+                    "改模板后原有答案不应丢失：" + item.path("question").asText());
         }
 
-        // ---------- 6. A 生成模板（mock）----------
+        // ---------- 6. A 生成角色（mock）----------
         Res generated = post("/api/sets/" + setId + "/generate", Map.of("sheetId", sheetId), tokenA);
-        assertTrue(generated.ok(), "生成模板失败: " + generated.message());
+        assertTrue(generated.ok(), "生成角色失败: " + generated.message());
         long templateId = generated.data().path("id").asLong();
         assertEquals("mock", generated.data().path("genModel").asText(), "未配置 key 时应标记为 mock");
         assertFalse(generated.data().path("content").asText().isBlank(), "system prompt 不应为空");
         assertTrue(generated.data().path("structured").isObject(), "应返回结构化角色卡");
         assertEquals("林渡", generated.data().path("structured").path("name").asText());
 
-        // 同一题集可基于同一答卷再生成一份（一题集多模板）
+        // 同一模板可基于同一答卷再生成一份（一模板多角色）
         Res generated2 = post("/api/sets/" + setId + "/generate", Map.of("sheetId", sheetId), tokenA);
         assertTrue(generated2.ok());
-        assertTrue(generated2.data().path("id").asLong() != templateId, "应生成新的模板记录");
+        assertTrue(generated2.data().path("id").asLong() != templateId, "应生成新的角色记录");
 
         // ---------- 7. 私有状态：他人不可见 ----------
-        assertEquals(404, get("/api/explore/sets/" + setId, null).status(), "未公开的题集不应出现在广场");
-        assertEquals(404, get("/api/sets/" + setId, tokenB).status(), "他人不应读到我的题集私有详情");
+        assertEquals(404, get("/api/explore/sets/" + setId, null).status(), "未公开的模板不应出现在广场");
+        assertEquals(404, get("/api/sets/" + setId, tokenB).status(), "他人不应读到我的模板私有详情");
 
-        // ---------- 8. A 公开题集与模板 ----------
+        // ---------- 8. A 公开模板与角色 ----------
         assertTrue(patch("/api/sets/" + setId + "/visibility", Map.of("visibility", 1), tokenA).ok());
         assertTrue(patch("/api/templates/" + templateId + "/visibility", Map.of("visibility", 1), tokenA).ok());
 
         // ---------- 9. 游客与 B 都能看到广场，且作者账号已脱敏 ----------
         Res publicSets = get("/api/explore/sets", null);
-        assertTrue(publicSets.ok(), "游客应能浏览题集广场");
+        assertTrue(publicSets.ok(), "游客应能浏览模板广场");
         JsonNode mine = findByField(publicSets.data().path("items"), "id", setId);
-        assertNotNull(mine, "公开题集应出现在广场列表");
+        assertNotNull(mine, "公开模板应出现在广场列表");
         String ownerAccount = mine.path("ownerAccount").asText("");
         assertTrue(ownerAccount.contains("***"), "广场上不应出现完整账号，实际为: " + ownerAccount);
         assertFalse(ownerAccount.contains("author@"), "不应泄漏邮箱前缀全文");
 
         Res publicTemplates = get("/api/explore/templates", null);
-        assertTrue(publicTemplates.ok(), "游客应能浏览模板广场");
+        assertTrue(publicTemplates.ok(), "游客应能浏览角色广场");
         assertTrue(publicTemplates.data().path("total").asInt() >= 1);
 
-        assertTrue(get("/api/explore/templates/" + templateId, null).ok(), "游客应能查看公开模板详情");
+        assertTrue(get("/api/explore/templates/" + templateId, null).ok(), "游客应能查看公开角色详情");
 
         // ---------- 10. B 一键导入 ----------
         Res imported = post("/api/sets/import/" + setId, null, tokenB);
@@ -181,9 +181,9 @@ class ApiFlowIntegrationTest {
         assertEquals(3, imported.data().path("questionCount").asInt(), "题目应被完整复制");
         assertEquals(0, imported.data().path("visibility").asInt(), "导入的副本默认私密");
 
-        assertEquals(409, post("/api/sets/import/" + setId, null, tokenA).status(), "不能导入自己创建的题集");
+        assertEquals(409, post("/api/sets/import/" + setId, null, tokenA).status(), "不能导入自己创建的模板");
 
-        // ---------- 11. B 用 A 的公开模板开对话 ----------
+        // ---------- 11. B 用 A 的公开角色开对话 ----------
         long conversationId = createConversation(tokenB, templateId);
 
         Res chat1 = post("/api/conversations/" + conversationId + "/chat", Map.of("message", "你好"), tokenB);
@@ -206,7 +206,7 @@ class ApiFlowIntegrationTest {
         Res privateTpl = post("/api/sets/" + setId + "/generate", Map.of("sheetId", sheetId), tokenA);
         long privateTemplateId = privateTpl.data().path("id").asLong();
         assertEquals(404, post("/api/conversations", Map.of("templateId", privateTemplateId), tokenB).status(),
-                "未公开的模板他人不应能使用");
+                "未公开的角色他人不应能使用");
 
         // ---------- 13. 清理 ----------
         assertTrue(delete("/api/conversations/" + conversationId, tokenB).ok());
@@ -493,7 +493,7 @@ class ApiFlowIntegrationTest {
         // 测试 profile 把 admin@example.com 列进了 app.admin.accounts，注册即为 ADMIN
         String adminToken = register("admin@example.com", "secret123");
 
-        long setId = createSet(authorToken, "可能违规的题集", List.of("问题一"));
+        long setId = createSet(authorToken, "可能违规的模板", List.of("问题一"));
         assertTrue(patch("/api/sets/" + setId + "/visibility", Map.of("visibility", 1), authorToken).ok());
 
         // 1. 普通用户访问管理接口应被拒（403，不是 401，因为他已登录）
@@ -535,7 +535,7 @@ class ApiFlowIntegrationTest {
 
         // 8. 作者自己仍能看到，并带出下架原因
         Res ownDetail = get("/api/sets/" + setId, authorToken);
-        assertTrue(ownDetail.ok(), "作者应仍能查看自己的题集");
+        assertTrue(ownDetail.ok(), "作者应仍能查看自己的模板");
         assertTrue(ownDetail.data().path("takenDown").asBoolean(), "应标记为已下架");
         assertEquals("含广告内容", ownDetail.data().path("takedownReason").asText());
 
@@ -558,7 +558,7 @@ class ApiFlowIntegrationTest {
         String reporterToken = register("rej-reporter@example.com", "secret123");
         String adminToken = register("admin2@example.com", "secret123");
 
-        long setId = createSet(authorToken, "正常题集", List.of("问题一"));
+        long setId = createSet(authorToken, "正常模板", List.of("问题一"));
         assertTrue(patch("/api/sets/" + setId + "/visibility", Map.of("visibility", 1), authorToken).ok());
 
         assertTrue(post("/api/reports", Map.of(
@@ -624,10 +624,10 @@ class ApiFlowIntegrationTest {
         }
         Res res = post("/api/sets", Map.of(
                 "title", title,
-                "description", "集成测试用题集",
+                "description", "集成测试用模板",
                 "questions", payload
         ), token);
-        assertTrue(res.ok(), "创建题集失败: " + res.message());
+        assertTrue(res.ok(), "创建模板失败: " + res.message());
         return res.data().path("id").asLong();
     }
 

@@ -16,8 +16,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 一次作答。同一个用户对同一个题集可以有多份答卷（不同答案版本），
- * 每份答卷可以各自生成自己的模板。
+ * 一次作答。同一个用户对同一个模板可以有多份答卷（不同答案版本），
+ * 每份答卷可以各自生成自己的角色。
  */
 @Entity
 @Table(name = "answer_sheet", indexes = {

@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card">
       <h1 class="title">登录</h1>
-      <p class="subtitle">登录后可创建题集、生成并分享角色</p>
+      <p class="subtitle">登录后可创建模板、生成并分享角色</p>
 
       <div class="tabs">
         <button

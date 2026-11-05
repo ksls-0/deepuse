@@ -1,7 +1,7 @@
 package org.example.deepusecode.character.entity;
 
 /**
- * 用户角色。
+ * 用户权限角色（USER / ADMIN），与 AI 角色无关。
  * <p>之所以用字符串常量而不是 JPA enum + ORDINAL：
  * 字符串落库可读性好，也不会因为枚举顺序调整而把历史数据读错。</p>
  */

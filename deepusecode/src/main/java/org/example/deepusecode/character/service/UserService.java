@@ -54,7 +54,7 @@ public class UserService {
     }
 
     /**
-     * 注册时若账号在白名单里，直接给管理员角色；
+     * 注册时若账号在白名单里，直接给管理员权限；
      * 不在白名单里的老账号由 AdminBootstrap 在启动时提升。
      */
     private String roleFor(String account) {

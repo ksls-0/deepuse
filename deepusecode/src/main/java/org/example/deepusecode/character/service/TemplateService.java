@@ -63,7 +63,7 @@ public class TemplateService {
     // ===================== 生成 =====================
 
     /**
-     * 同步生成角色模板。
+     * 同步生成角色。
      * <p>刻意不在方法上开事务：AI 调用可能耗时数十秒，
      * 若包在事务里会把数据库连接一直占着。读取各自短事务，落库时再开一个。</p>
      */
@@ -73,14 +73,14 @@ public class TemplateService {
         AnswerSheet sheet = (sheetId != null
                 ? sheetRepository.findByIdAndUserId(sheetId, userId)
                 : sheetRepository.findFirstBySetIdAndUserIdOrderByIdDesc(setId, userId))
-                .orElseThrow(() -> BusinessException.badRequest("请先填写答卷，再生成模板"));
+                .orElseThrow(() -> BusinessException.badRequest("请先填写答卷，再生成角色"));
 
         List<Question> questions = questionRepository.findBySetIdOrderBySortOrderAscIdAsc(setId);
         List<Answer> answers = answerRepository.findBySheetId(sheet.getId());
 
         CharacterPromptContext ctx = buildContext(set, sheet, questions, answers);
         if (ctx.answeredCount() == 0) {
-            throw BusinessException.badRequest("请至少回答一个问题再生成模板");
+            throw BusinessException.badRequest("请至少回答一个问题再生成角色");
         }
 
         String prompt = promptBuilder.buildCharacterPrompt(ctx);
@@ -92,7 +92,7 @@ public class TemplateService {
         try {
             long aiStartedAt = System.currentTimeMillis();
             DeepSeekClient.AiResult aiResult = deepSeekClient.generateCharacterCard(prompt, ctx);
-            log.info("模板生成完成: ownerId={}, setId={}, model={}, degraded={}, 耗时={}ms",
+            log.info("角色生成完成: ownerId={}, setId={}, model={}, degraded={}, 耗时={}ms",
                     userId, setId, aiResult.model(), aiResult.degraded(),
                     System.currentTimeMillis() - aiStartedAt);
 
@@ -143,7 +143,7 @@ public class TemplateService {
         }
 
         AiTemplate saved = templateRepository.save(template);
-        log.info("模板已生成, id={}, ownerId={}, model={}, structured={}",
+        log.info("角色已生成, id={}, ownerId={}, model={}, structured={}",
                 saved.getId(), userId, aiResult.model(), card != null);
 
         return toVO(saved, set, userId, accountResolver.resolveOne(userId));
@@ -175,7 +175,7 @@ public class TemplateService {
         );
     }
 
-    // ===================== 私有模板 =====================
+    // ===================== 私有角色 =====================
 
     @Transactional(readOnly = true)
     public PageResult<TemplateCardVO> listMine(Long userId, int page, int size) {
@@ -222,7 +222,7 @@ public class TemplateService {
         return toVO(saved, set, userId, accountResolver.resolveOne(userId));
     }
 
-    // ===================== 公开模板 =====================
+    // ===================== 公开角色 =====================
 
     @Transactional(readOnly = true)
     public PageResult<TemplateCardVO> listPublic(String keyword, String sort, int page, int size) {
@@ -241,7 +241,7 @@ public class TemplateService {
     }
 
     /**
-     * 供对话使用：模板必须是自己的，或者是公开的。
+     * 供对话使用：角色必须是自己的，或者是公开的。
      */
     @Transactional(readOnly = true)
     public AiTemplate loadUsable(Long userId, Long templateId) {
@@ -249,8 +249,8 @@ public class TemplateService {
     }
 
     /**
-     * 批量取模板名，避免会话列表出现 N+1 查询。
-     * 不可见（已删 / 已转私密）的模板不会出现在返回结果里，调用方按"已失效"处理。
+     * 批量取角色名，避免会话列表出现 N+1 查询。
+     * 不可见（已删 / 已转私密）的角色不会出现在返回结果里，调用方按"已失效"处理。
      */
     @Transactional(readOnly = true)
     public Map<Long, String> templateNames(Long userId, List<Long> templateIds) {
@@ -283,19 +283,19 @@ public class TemplateService {
 
     private AiTemplate loadOwned(Long userId, Long templateId) {
         return templateRepository.findByIdAndOwnerIdAndDeleted(templateId, userId, NOT_DELETED)
-                .orElseThrow(() -> BusinessException.notFound("模板不存在"));
+                .orElseThrow(() -> BusinessException.notFound("角色不存在"));
     }
 
     private AiTemplate loadVisible(Long viewerId, Long templateId) {
         AiTemplate template = templateRepository.findByIdAndDeleted(templateId, NOT_DELETED)
-                .orElseThrow(() -> BusinessException.notFound("模板不存在或已下架"));
+                .orElseThrow(() -> BusinessException.notFound("角色不存在或已下架"));
 
         boolean isOwner = viewerId != null && viewerId.equals(template.getOwnerId());
         if (!isOwner && Moderation.isTakenDown(template.getTakenDown())) {
-            throw BusinessException.notFound("该模板已被下架");
+            throw BusinessException.notFound("该角色已被下架");
         }
         if (!isOwner && !Visibility.isPublic(template.getVisibility())) {
-            throw BusinessException.notFound("模板不存在或未公开");
+            throw BusinessException.notFound("角色不存在或未公开");
         }
         return template;
     }

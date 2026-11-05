@@ -1,7 +1,7 @@
 import api from './config';
 
 export const setApi = {
-  // 我的题集
+  // 我的模板
   create(payload) {
     return api.post('/api/sets', payload);
   },
@@ -20,7 +20,7 @@ export const setApi = {
   setVisibility(id, visibility) {
     return api.patch(`/api/sets/${id}/visibility`, { visibility });
   },
-  // 一键导入公开题集
+  // 一键导入公开模板
   importSet(publicSetId) {
     return api.post(`/api/sets/import/${publicSetId}`);
   },
@@ -42,7 +42,7 @@ export const setApi = {
       params: sheetId ? { sheetId } : {}
     });
   },
-  // 同步生成模板
+  // 同步生成角色
   generate(setId, sheetId) {
     return api.post(`/api/sets/${setId}/generate`, sheetId ? { sheetId } : {});
   },

@@ -1,12 +1,12 @@
 <template>
   <div class="page">
-    <AppNavbar title="我的模板" :show-back="false" />
+    <AppNavbar title="我的角色" :show-back="false" />
 
     <main class="content">
       <header class="head">
         <div>
-          <h1>我的模板</h1>
-          <p class="hint">共 {{ total }} 个 · 公开后可出现在模板广场供他人使用</p>
+          <h1>我的角色</h1>
+          <p class="hint">共 {{ total }} 个 · 公开后可出现在角色广场供他人使用</p>
         </div>
       </header>
 
@@ -15,9 +15,9 @@
       <div v-if="loading" class="empty">加载中…</div>
 
       <div v-else-if="templates.length === 0" class="empty">
-        <p>还没有模板</p>
-        <p class="sub">先去题集填写答卷，再点「生成角色模板」</p>
-        <router-link to="/sets" class="primary-btn">去我的题集</router-link>
+        <p>还没有角色</p>
+        <p class="sub">先去模板填写答卷，再点「生成角色」</p>
+        <router-link to="/sets" class="primary-btn">去我的模板</router-link>
       </div>
 
       <div v-else class="grid">
@@ -90,7 +90,7 @@ async function toggleVisibility(tpl) {
 }
 
 async function remove(tpl) {
-  if (!confirm(`确定删除模板「${tpl.name}」吗？`)) return;
+  if (!confirm(`确定删除角色「${tpl.name}」吗？`)) return;
   try {
     await templateApi.remove(tpl.id);
     await load();

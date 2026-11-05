@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 广场：题集与模板两类公开内容的只读浏览入口。
+ * 广场：模板与角色两类公开内容的只读浏览入口。
  * 全部 GET 且 permitAll，游客可看；登录后返回的 mine 字段依然正确。
  */
 @RestController

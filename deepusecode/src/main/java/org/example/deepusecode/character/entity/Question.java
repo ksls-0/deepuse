@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * 题集下的单个问题，按 sortOrder 升序展示。
+ * 模板下的单个问题，按 sortOrder 升序展示。
  */
 @Entity
 @Table(name = "question", indexes = {

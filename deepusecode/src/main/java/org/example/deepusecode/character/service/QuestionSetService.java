@@ -44,7 +44,7 @@ public class QuestionSetService {
     private final AnswerRepository answerRepository;
     private final UserAccountResolver accountResolver;
 
-    // ===================== 私有：我的题集 =====================
+    // ===================== 私有：我的模板 =====================
 
     @Transactional
     public SetDetailVO create(Long userId, CreateSetRequest request) {
@@ -114,18 +114,18 @@ public class QuestionSetService {
     }
 
     /**
-     * 一键导入：把公开题集深拷贝一份到当前用户名下。
+     * 一键导入：把公开模板深拷贝一份到当前用户名下。
      */
     @Transactional
     public SetDetailVO importSet(Long userId, Long publicSetId) {
         QuestionSet source = setRepository.findByIdAndDeleted(publicSetId, NOT_DELETED)
-                .orElseThrow(() -> BusinessException.notFound("题集不存在或已下架"));
+                .orElseThrow(() -> BusinessException.notFound("模板不存在或已下架"));
 
         if (!Visibility.isPublic(source.getVisibility())) {
-            throw BusinessException.forbidden("该题集未公开，无法导入");
+            throw BusinessException.forbidden("该模板未公开，无法导入");
         }
         if (source.getOwnerId().equals(userId)) {
-            throw BusinessException.conflict("不能导入自己创建的题集");
+            throw BusinessException.conflict("不能导入自己创建的模板");
         }
 
         List<Question> sourceQuestions =
@@ -180,14 +180,14 @@ public class QuestionSetService {
     @Transactional(readOnly = true)
     public SetDetailVO publicDetail(Long viewerId, Long setId) {
         QuestionSet set = setRepository.findByIdAndDeleted(setId, NOT_DELETED)
-                .orElseThrow(() -> BusinessException.notFound("题集不存在或已下架"));
+                .orElseThrow(() -> BusinessException.notFound("模板不存在或已下架"));
 
         boolean isOwner = viewerId != null && viewerId.equals(set.getOwnerId());
         if (Moderation.isTakenDown(set.getTakenDown()) && !isOwner) {
-            throw BusinessException.notFound("该题集已被下架");
+            throw BusinessException.notFound("该模板已被下架");
         }
         if (!Visibility.isPublic(set.getVisibility()) && !isOwner) {
-            throw BusinessException.notFound("题集不存在或未公开");
+            throw BusinessException.notFound("模板不存在或未公开");
         }
 
         List<Question> questions = questionRepository.findBySetIdOrderBySortOrderAscIdAsc(setId);
@@ -198,20 +198,20 @@ public class QuestionSetService {
 
     public QuestionSet loadAnswerable(Long viewerId, Long setId) {
         QuestionSet set = setRepository.findByIdAndDeleted(setId, NOT_DELETED)
-                .orElseThrow(() -> BusinessException.notFound("题集不存在或已下架"));
+                .orElseThrow(() -> BusinessException.notFound("模板不存在或已下架"));
         boolean isOwner = viewerId.equals(set.getOwnerId());
         if (!isOwner && Moderation.isTakenDown(set.getTakenDown())) {
-            throw BusinessException.notFound("该题集已被下架");
+            throw BusinessException.notFound("该模板已被下架");
         }
         if (!isOwner && !Visibility.isPublic(set.getVisibility())) {
-            throw BusinessException.notFound("题集不存在或未公开");
+            throw BusinessException.notFound("模板不存在或未公开");
         }
         return set;
     }
 
     private QuestionSet loadOwned(Long userId, Long setId) {
         return setRepository.findByIdAndOwnerIdAndDeleted(setId, userId, NOT_DELETED)
-                .orElseThrow(() -> BusinessException.notFound("题集不存在"));
+                .orElseThrow(() -> BusinessException.notFound("模板不存在"));
     }
 
     /**

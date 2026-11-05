@@ -14,9 +14,9 @@
 
       <div v-else-if="conversations.length === 0" class="empty">
         <p>还没有对话</p>
-        <p class="sub">从我的模板或模板广场里挑一个角色开始聊</p>
+        <p class="sub">从我的角色或角色广场里挑一个角色开始聊</p>
         <div class="empty-actions">
-          <router-link to="/templates" class="primary-btn">我的模板</router-link>
+          <router-link to="/templates" class="primary-btn">我的角色</router-link>
           <router-link to="/explore" class="ghost-btn">去广场</router-link>
         </div>
       </div>
