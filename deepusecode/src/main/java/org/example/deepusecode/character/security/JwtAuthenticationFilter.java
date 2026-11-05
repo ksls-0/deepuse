@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.deepusecode.character.config.JwtUtil;
+import org.example.deepusecode.character.entity.Role;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,12 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (claims != null) {
                 Long userId = jwtUtil.extractUserId(claims);
                 if (userId != null) {
+                    String role = jwtUtil.extractRole(claims);
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     userId, null,
-                                    AuthorityUtils.createAuthorityList("ROLE_USER"));
+                                    AuthorityUtils.createAuthorityList(Role.authority(role)));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("JWT 认证通过, userId={}", userId);
+                    log.debug("JWT 认证通过, userId={}, role={}", userId, role);
                 }
             }
         }

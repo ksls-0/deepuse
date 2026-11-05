@@ -23,6 +23,9 @@ const routes = [
   { path: '/chat/:id', name: 'Chat', component: () => import('@/views/ChatView.vue') },
 
   // 广场：游客可浏览
+  // 管理后台：仅 ADMIN 可见
+  { path: '/admin', name: 'Admin', component: () => import('@/views/AdminView.vue'), meta: { admin: true } },
+
   { path: '/explore', name: 'Explore', component: () => import('@/views/ExploreView.vue'), meta: { public: true } },
   {
     path: '/explore/sets/:id',
@@ -51,6 +54,10 @@ router.beforeEach((to) => {
     return { path: '/login', query: { redirect: to.fullPath } };
   }
   if ((to.path === '/login' || to.path === '/register') && token) {
+    return { path: '/home' };
+  }
+  // 管理页仅 ADMIN 可进；服务端也会拦，这里只是体验优化
+  if (to.meta.admin && localStorage.getItem('role') !== 'ADMIN') {
     return { path: '/home' };
   }
   return true;

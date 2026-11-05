@@ -3,6 +3,12 @@
     <AppNavbar :title="setTitle || '填写答卷'" back-to="/sets" />
 
     <main class="content">
+      <div v-if="takedown" class="takedown-banner">
+        <strong>该题集已被下架</strong>
+        <span>原因：{{ takedown.reason || '未填写' }}</span>
+        <span>下架后不会出现在广场，他人无法导入；你仍可继续编辑自己的内容。</span>
+      </div>
+
       <p v-if="error" class="alert error">{{ error }}</p>
       <p v-if="notice" class="alert ok">{{ notice }}</p>
 
@@ -103,6 +109,7 @@ const route = useRoute();
 const router = useRouter();
 
 const setTitle = ref('');
+const takedown = ref(null);
 const sheets = ref([]);
 const currentSheetId = ref(null);
 const items = ref([]);
@@ -152,6 +159,9 @@ async function loadAll() {
       setApi.listSheets(route.params.id)
     ]);
     setTitle.value = detail.title;
+    takedown.value = detail.takenDown
+      ? { reason: detail.takedownReason }
+      : null;
     sheets.value = sheetList || [];
 
     const querySheetId = route.query.sheetId ? Number(route.query.sheetId) : null;
@@ -424,4 +434,19 @@ onMounted(loadAll);
 @media (max-width: 640px) {
   .grid-3 { grid-template-columns: 1fr; }
 }
+.takedown-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff3f3;
+  border: 1px solid #ffbdbd;
+  border-left: 4px solid #ff4d4f;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #b23b3b;
+  line-height: 1.6;
+}
+
+.takedown-banner strong { font-size: 14px; color: #c62828; }
 </style>

@@ -68,21 +68,28 @@ const userStore = useUserStore();
 
 const menuOpen = ref(false);
 const isLoggedIn = computed(() => userStore.isLoggedIn);
+const isAdmin = computed(() => userStore.isAdmin);
 
-const links = computed(() =>
-  isLoggedIn.value
-    ? [
-        { to: '/home', label: '首页' },
-        { to: '/sets', label: '我的题集' },
-        { to: '/templates', label: '我的模板' },
-        { to: '/conversations', label: '对话' },
-        { to: '/explore', label: '广场' }
-      ]
-    : [
-        { to: '/explore', label: '广场' },
-        { to: '/login', label: '登录' }
-      ]
-);
+const links = computed(() => {
+  if (!isLoggedIn.value) {
+    return [
+      { to: '/explore', label: '广场' },
+      { to: '/login', label: '登录' }
+    ];
+  }
+  const base = [
+    { to: '/home', label: '首页' },
+    { to: '/sets', label: '我的题集' },
+    { to: '/templates', label: '我的模板' },
+    { to: '/conversations', label: '对话' },
+    { to: '/explore', label: '广场' }
+  ];
+  // 管理员多一个审核入口
+  if (isAdmin.value) {
+    base.push({ to: '/admin', label: '内容审核' });
+  }
+  return base;
+});
 
 // 路由切换后自动收起抽屉，避免遮住新页面
 watch(() => route.fullPath, () => {

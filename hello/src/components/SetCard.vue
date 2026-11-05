@@ -2,7 +2,8 @@
   <article class="card" :class="{ clickable }" @click="onClick">
     <header class="card-head">
       <h3 class="card-title">{{ set.title }}</h3>
-      <span v-if="set.visibility === 1" class="badge public">公开</span>
+      <span v-if="set.takenDown" class="badge down">已下架</span>
+      <span v-else-if="set.visibility === 1" class="badge public">公开</span>
       <span v-else class="badge private">私密</span>
     </header>
 
@@ -79,6 +80,7 @@ function onClick() {
 
 .badge.public { color: #2e7d32; }
 .badge.private { color: #8a8a8a; }
+.badge.down { color: #c62828; background: #ffebee; }
 
 .card-desc {
   font-size: 13px;

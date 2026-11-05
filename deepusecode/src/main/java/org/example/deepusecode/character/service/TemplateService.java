@@ -18,6 +18,7 @@ import org.example.deepusecode.character.entity.Answer;
 import org.example.deepusecode.character.entity.AnswerSheet;
 import org.example.deepusecode.character.entity.GenStatus;
 import org.example.deepusecode.character.entity.Question;
+import org.example.deepusecode.character.entity.Moderation;
 import org.example.deepusecode.character.entity.QuestionSet;
 import org.example.deepusecode.character.entity.Visibility;
 import org.example.deepusecode.character.repository.AiTemplateRepository;
@@ -42,6 +43,7 @@ import java.util.Map;
 public class TemplateService {
 
     private static final int NOT_DELETED = 0;
+    private static final int NOT_TAKEN_DOWN = Moderation.NOT_TAKEN_DOWN;
 
     private final AiTemplateRepository templateRepository;
     private final QuestionSetRepository setRepository;
@@ -221,9 +223,10 @@ public class TemplateService {
         String kw = keyword == null ? "" : keyword.trim();
 
         Page<AiTemplate> result = kw.isEmpty()
-                ? templateRepository.findByVisibilityAndDeleted(Visibility.PUBLIC, NOT_DELETED, pageable)
-                : templateRepository.findByVisibilityAndDeletedAndNameContaining(
-                        Visibility.PUBLIC, NOT_DELETED, kw, pageable);
+                ? templateRepository.findByVisibilityAndDeletedAndTakenDown(
+                        Visibility.PUBLIC, NOT_DELETED, NOT_TAKEN_DOWN, pageable)
+                : templateRepository.findByVisibilityAndDeletedAndTakenDownAndNameContaining(
+                        Visibility.PUBLIC, NOT_DELETED, NOT_TAKEN_DOWN, kw, pageable);
 
         Map<Long, String> accounts = accountResolver.resolve(
                 result.getContent().stream().map(AiTemplate::getOwnerId).toList());
@@ -253,7 +256,8 @@ public class TemplateService {
                 continue;
             }
             boolean isOwner = userId != null && userId.equals(template.getOwnerId());
-            if (isOwner || Visibility.isPublic(template.getVisibility())) {
+            if (isOwner || (Visibility.isPublic(template.getVisibility())
+                    && !Moderation.isTakenDown(template.getTakenDown()))) {
                 names.put(template.getId(), template.getName());
             }
         }
@@ -280,6 +284,9 @@ public class TemplateService {
                 .orElseThrow(() -> BusinessException.notFound("模板不存在或已下架"));
 
         boolean isOwner = viewerId != null && viewerId.equals(template.getOwnerId());
+        if (!isOwner && Moderation.isTakenDown(template.getTakenDown())) {
+            throw BusinessException.notFound("该模板已被下架");
+        }
         if (!isOwner && !Visibility.isPublic(template.getVisibility())) {
             throw BusinessException.notFound("模板不存在或未公开");
         }
@@ -309,6 +316,9 @@ public class TemplateService {
                         ownerAccount, viewerId, template.getOwnerId()))
                 .createdAt(template.getCreatedAt())
                 .mine(viewerId != null && viewerId.equals(template.getOwnerId()))
+                .takenDown(Moderation.isTakenDown(template.getTakenDown()))
+                .takedownReason(template.getTakedownReason())
+                .takenDownAt(template.getTakenDownAt())
                 .build();
     }
 
@@ -324,6 +334,9 @@ public class TemplateService {
                 .setId(template.getSetId())
                 .createdAt(template.getCreatedAt())
                 .mine(viewerId != null && viewerId.equals(template.getOwnerId()))
+                .takenDown(Moderation.isTakenDown(template.getTakenDown()))
+                .takedownReason(template.getTakedownReason())
+                .takenDownAt(template.getTakenDownAt())
                 .build();
     }
 

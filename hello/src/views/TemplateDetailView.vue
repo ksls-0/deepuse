@@ -8,6 +8,12 @@
       <div v-if="loading" class="empty">加载中…</div>
 
       <template v-else-if="template.id">
+        <div v-if="template.takenDown" class="takedown-banner">
+          <strong>该模板已被下架</strong>
+          <span>原因：{{ template.takedownReason || '未填写' }}</span>
+          <span>下架后不会出现在模板广场，他人也无法使用；如有异议请联系管理员。</span>
+        </div>
+
         <div class="toolbar">
           <span v-if="template.genModel === 'mock'" class="mock-badge">
             示例数据 · 配置 DEEPSEEK_API_KEY 后重新生成即为真实 AI 结果
@@ -291,4 +297,19 @@ onMounted(load);
 .alert.ok { color: #2e7d32; background: #e8f5e9; }
 
 .empty { text-align: center; color: #999; font-size: 14px; padding: 60px 0; }
+.takedown-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #fff3f3;
+  border: 1px solid #ffbdbd;
+  border-left: 4px solid #ff4d4f;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #b23b3b;
+  line-height: 1.6;
+}
+
+.takedown-banner strong { font-size: 14px; color: #c62828; }
 </style>

@@ -11,6 +11,7 @@ import org.example.deepusecode.character.dto.SetCardVO;
 import org.example.deepusecode.character.dto.SetDetailVO;
 import org.example.deepusecode.character.dto.UpdateSetRequest;
 import org.example.deepusecode.character.entity.Question;
+import org.example.deepusecode.character.entity.Moderation;
 import org.example.deepusecode.character.entity.QuestionSet;
 import org.example.deepusecode.character.entity.Visibility;
 import org.example.deepusecode.character.repository.AnswerRepository;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 public class QuestionSetService {
 
     private static final int NOT_DELETED = 0;
+    private static final int NOT_TAKEN_DOWN = Moderation.NOT_TAKEN_DOWN;
 
     private final QuestionSetRepository setRepository;
     private final QuestionRepository questionRepository;
@@ -165,9 +167,10 @@ public class QuestionSetService {
         String kw = keyword == null ? "" : keyword.trim();
 
         Page<QuestionSet> result = kw.isEmpty()
-                ? setRepository.findByVisibilityAndDeleted(Visibility.PUBLIC, NOT_DELETED, pageable)
-                : setRepository.findByVisibilityAndDeletedAndTitleContaining(
-                        Visibility.PUBLIC, NOT_DELETED, kw, pageable);
+                ? setRepository.findByVisibilityAndDeletedAndTakenDown(
+                        Visibility.PUBLIC, NOT_DELETED, NOT_TAKEN_DOWN, pageable)
+                : setRepository.findByVisibilityAndDeletedAndTakenDownAndTitleContaining(
+                        Visibility.PUBLIC, NOT_DELETED, NOT_TAKEN_DOWN, kw, pageable);
 
         Map<Long, String> accounts =
                 accountResolver.resolve(result.getContent().stream().map(QuestionSet::getOwnerId).toList());
@@ -180,6 +183,9 @@ public class QuestionSetService {
                 .orElseThrow(() -> BusinessException.notFound("题集不存在或已下架"));
 
         boolean isOwner = viewerId != null && viewerId.equals(set.getOwnerId());
+        if (Moderation.isTakenDown(set.getTakenDown()) && !isOwner) {
+            throw BusinessException.notFound("该题集已被下架");
+        }
         if (!Visibility.isPublic(set.getVisibility()) && !isOwner) {
             throw BusinessException.notFound("题集不存在或未公开");
         }
@@ -194,6 +200,9 @@ public class QuestionSetService {
         QuestionSet set = setRepository.findByIdAndDeleted(setId, NOT_DELETED)
                 .orElseThrow(() -> BusinessException.notFound("题集不存在或已下架"));
         boolean isOwner = viewerId.equals(set.getOwnerId());
+        if (!isOwner && Moderation.isTakenDown(set.getTakenDown())) {
+            throw BusinessException.notFound("该题集已被下架");
+        }
         if (!isOwner && !Visibility.isPublic(set.getVisibility())) {
             throw BusinessException.notFound("题集不存在或未公开");
         }
@@ -261,6 +270,8 @@ public class QuestionSetService {
                 .createdAt(set.getCreatedAt())
                 .updatedAt(set.getUpdatedAt())
                 .mine(viewerId != null && viewerId.equals(set.getOwnerId()))
+                .takenDown(Moderation.isTakenDown(set.getTakenDown()))
+                .takedownReason(set.getTakedownReason())
                 .build();
     }
 
@@ -282,6 +293,9 @@ public class QuestionSetService {
                 .createdAt(set.getCreatedAt())
                 .updatedAt(set.getUpdatedAt())
                 .mine(viewerId != null && viewerId.equals(set.getOwnerId()))
+                .takenDown(Moderation.isTakenDown(set.getTakenDown()))
+                .takedownReason(set.getTakedownReason())
+                .takenDownAt(set.getTakenDownAt())
                 .questions(questionVOs)
                 .build();
     }

@@ -17,10 +17,15 @@ public interface QuestionSetRepository extends JpaRepository<QuestionSet, Long> 
 
     Page<QuestionSet> findByOwnerIdAndDeleted(Long ownerId, Integer deleted, Pageable pageable);
 
-    Page<QuestionSet> findByVisibilityAndDeleted(Integer visibility, Integer deleted, Pageable pageable);
+    // ===== 广场：必须同时满足「已公开 + 未下架 + 未删除」 =====
 
-    Page<QuestionSet> findByVisibilityAndDeletedAndTitleContaining(
-            Integer visibility, Integer deleted, String keyword, Pageable pageable);
+    Page<QuestionSet> findByVisibilityAndDeletedAndTakenDown(
+            Integer visibility, Integer deleted, Integer takenDown, Pageable pageable);
+
+    Page<QuestionSet> findByVisibilityAndDeletedAndTakenDownAndTitleContaining(
+            Integer visibility, Integer deleted, Integer takenDown, String keyword, Pageable pageable);
 
     long countByOwnerIdAndDeleted(Long ownerId, Integer deleted);
+
+    long countByTakenDownAndDeleted(Integer takenDown, Integer deleted);
 }

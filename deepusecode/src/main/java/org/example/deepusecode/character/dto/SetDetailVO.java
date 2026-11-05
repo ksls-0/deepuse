@@ -21,5 +21,8 @@ public class SetDetailVO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean mine;
+    private boolean takenDown;
+    private String takedownReason;
+    private LocalDateTime takenDownAt;
     private List<QuestionVO> questions;
 }

@@ -3,6 +3,8 @@ package org.example.deepusecode.character.service;
 import lombok.RequiredArgsConstructor;
 import org.example.deepusecode.character.common.BusinessException;
 import org.example.deepusecode.character.common.ErrorCode;
+import org.example.deepusecode.character.config.AdminProperties;
+import org.example.deepusecode.character.entity.Role;
 import org.example.deepusecode.character.entity.User;
 import org.example.deepusecode.character.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,6 +23,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AdminProperties adminProperties;
 
     // ===================== 注册 =====================
 
@@ -33,6 +36,7 @@ public class UserService {
         user.setEmail(email);
         user.setAccount(email);
         user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole(roleFor(email));
         return saveSafely(user, "该邮箱已注册");
     }
 
@@ -45,7 +49,16 @@ public class UserService {
         user.setPhone(phone);
         user.setAccount(phone);
         user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole(roleFor(phone));
         return saveSafely(user, "该手机号已注册");
+    }
+
+    /**
+     * 注册时若账号在白名单里，直接给管理员角色；
+     * 不在白名单里的老账号由 AdminBootstrap 在启动时提升。
+     */
+    private String roleFor(String account) {
+        return adminProperties.isConfiguredAdmin(account) ? Role.ADMIN : Role.USER;
     }
 
     /**

@@ -10,5 +10,6 @@ import java.time.LocalDateTime;
 public class UserVO {
     private Long id;
     private String account;
+    private String role;
     private LocalDateTime createTime;
 }

@@ -5,6 +5,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.example.deepusecode.character.entity.Role;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -73,16 +74,24 @@ public class JwtUtil {
         }
     }
 
-    public String generateToken(Long userId, String account) {
+    public String generateToken(Long userId, String account, String role) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
                 .subject(account)
                 .claim("userId", userId)
+                // 角色写进 claim，鉴权时无需再查库；代价是改角色后需要重新登录
+                .claim("role", role == null || role.isBlank() ? Role.USER : role)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
                 .compact();
+    }
+
+    /** 从 claim 读角色，读不到按普通用户处理 */
+    public String extractRole(Claims claims) {
+        Object raw = claims.get("role");
+        return raw instanceof String text && !text.isBlank() ? text : Role.USER;
     }
 
     /**

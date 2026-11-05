@@ -17,12 +17,17 @@ public interface AiTemplateRepository extends JpaRepository<AiTemplate, Long> {
 
     Page<AiTemplate> findByOwnerIdAndDeleted(Long ownerId, Integer deleted, Pageable pageable);
 
-    Page<AiTemplate> findByVisibilityAndDeleted(Integer visibility, Integer deleted, Pageable pageable);
+    // ===== 广场：必须同时满足「已公开 + 未下架 + 未删除」 =====
 
-    Page<AiTemplate> findByVisibilityAndDeletedAndNameContaining(
-            Integer visibility, Integer deleted, String keyword, Pageable pageable);
+    Page<AiTemplate> findByVisibilityAndDeletedAndTakenDown(
+            Integer visibility, Integer deleted, Integer takenDown, Pageable pageable);
+
+    Page<AiTemplate> findByVisibilityAndDeletedAndTakenDownAndNameContaining(
+            Integer visibility, Integer deleted, Integer takenDown, String keyword, Pageable pageable);
 
     long countByOwnerIdAndDeleted(Long ownerId, Integer deleted);
 
     long countBySetId(Long setId);
+
+    long countByTakenDownAndDeleted(Integer takenDown, Integer deleted);
 }

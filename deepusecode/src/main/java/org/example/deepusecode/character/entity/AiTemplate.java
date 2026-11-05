@@ -77,6 +77,16 @@ public class AiTemplate {
     @Column(nullable = false)
     private Integer deleted = 0;
 
+    /** 是否被管理员强制下架，与 visibility 正交，后者优先 */
+    @Column(name = "taken_down", nullable = false)
+    private Integer takenDown = 0;
+
+    @Column(name = "takedown_reason", length = 200)
+    private String takedownReason;
+
+    @Column(name = "taken_down_at")
+    private LocalDateTime takenDownAt;
+
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();

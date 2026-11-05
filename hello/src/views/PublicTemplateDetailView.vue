@@ -22,16 +22,27 @@
           </template>
           <template v-else>
             <p class="tip">开始对话会新建一个只属于你的会话。</p>
-            <button class="primary-btn" :disabled="starting" @click="startChat">
-              {{ starting ? '创建会话中…' : '使用此模板对话' }}
-            </button>
+            <div class="action-group">
+              <button class="report-link" type="button" @click="openReport">举报</button>
+              <button class="primary-btn" :disabled="starting" @click="startChat">
+                {{ starting ? '创建会话中…' : '使用此模板对话' }}
+              </button>
+            </div>
           </template>
         </footer>
       </template>
+      <p v-if="reportNotice" class="alert ok">{{ reportNotice }}</p>
     </main>
+
+    <ReportDialog
+      :visible="showReport"
+      target-type="TEMPLATE"
+      :target-id="template.id"
+      @close="showReport = false"
+      @done="reportNotice = '举报已提交，我们会尽快处理'"
+    />
   </div>
 </template>
-
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -39,6 +50,7 @@ import AppNavbar from '@/components/layout/AppNavbar.vue';
 import CharacterCard from '@/components/CharacterCard.vue';
 import { templateApi } from '@/api/templates';
 import { conversationApi } from '@/api/conversations';
+import ReportDialog from '@/components/ReportDialog.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -47,6 +59,8 @@ const template = reactive({ id: null });
 const loading = ref(true);
 const starting = ref(false);
 const error = ref('');
+const showReport = ref(false);
+const reportNotice = ref('');
 
 async function load() {
   loading.value = true;
@@ -59,6 +73,14 @@ async function load() {
   } finally {
     loading.value = false;
   }
+}
+
+function openReport() {
+  if (!localStorage.getItem('token')) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } });
+    return;
+  }
+  showReport.value = true;
 }
 
 async function startChat() {
@@ -150,4 +172,22 @@ onMounted(load);
 .alert.error { color: #c62828; background: #ffebee; }
 
 .empty { text-align: center; color: #999; font-size: 14px; padding: 60px 0; }
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-link {
+  background: none;
+  border: none;
+  color: #9a9a9a;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.report-link:hover { color: #ff4d4f; }
+
+.alert.ok { color: #2e7d32; background: #e8f5e9; }
 </style>

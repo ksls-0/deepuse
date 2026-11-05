@@ -114,6 +114,8 @@ public class SecurityConfig {
                          * 那些请求必须放行，否则未登录用户打开首页会收到一坨 401 JSON。
                          * 真正的数据安全仍由这三条前缀保证，前端路由守卫只管跳转体验。
                          */
+                        // 管理后台：必须是 ADMIN 角色（JWT 里的 role claim 决定 authority）
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**", "/user/**", "/actuator/**").authenticated()
                         // 其余：前端静态资源与 SPA 深链
                         .anyRequest().permitAll()

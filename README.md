@@ -34,6 +34,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD=
 DEEPSEEK_API_KEY=                        # 留空则走 mock，链路仍可跑通
 AI_DAILY_GENERATION_LIMIT=20             # 每用户 24h 内最多生成多少次角色模板
+APP_ADMIN_ACCOUNTS=                     # 管理员账号白名单，逗号分隔
 ```
 
 - `JWT_SECRET` **缺失或仍是模板占位值时应用会拒绝启动**（防止用弱密钥上线）。
@@ -46,7 +47,8 @@ schema 现在由 **Flyway 单一管理**，`spring.jpa.hibernate.ddl-auto=valida
 （Hibernate 只校验不改表，启动时就能发现实体与库的漂移）。
 
 ```
-src/main/resources/db/migration/V1__init.sql    ← 8 张业务表的完整结构（含唯一索引）
+src/main/resources/db/migration/V1__init.sql      ← 8 张业务表的完整结构（含唯一索引）
+src/main/resources/db/migration/V2__moderation.sql ← 用户角色、内容下架字段、举报表
 ```
 
 - **全新空库**：启动时自动执行 V1 建表。
@@ -162,6 +164,38 @@ GET  /user/me                                              当前用户
 - 策略是**先扣额度、失败退还**：AI 调用本身就有成本，只统计成功次数保护不到账单；
   但 AI 异常或落库失败会退还，不会白扣用户额度
 - 配额按用户隔离，一个用户用尽不影响其他人
+
+### 内容审核（UGC 合规）
+
+```
+POST /api/reports                              {targetType, targetId, reason, detail}  举报公开内容
+GET  /api/admin/reports/pending?page&size                                             待处理队列
+GET  /api/admin/reports/handled?page&size                                             已处理历史
+GET  /api/admin/stats                                                                 概览
+POST /api/admin/reports/{id}/handle            {action: TAKEDOWN|REJECT, note}         处理举报
+POST /api/admin/{SET|TEMPLATE}/{id}/takedown   {reason}                               直接下架
+POST /api/admin/{SET|TEMPLATE}/{id}/restore                                           恢复
+```
+
+**下架与作者"设为私密"是两个正交维度**：`visibility` 是作者意愿，`taken_down` 是平台处置，
+后者优先。被下架的内容：
+
+- 不出现在广场，他人打开详情返回 404
+- 作者自己仍能查看和编辑，页面顶部显示下架原因
+- 恢复后自动回到作者原来的公开状态，不需要他再手动公开一次
+- **作者手动再切一次"公开"也救不回来**，因为平台处置优先
+
+**举报规则**：同一人对同一内容只能举报一次（唯一索引兜底，刷举报会返回 409）；
+不能举报自己的内容；一次`TAKEDOWN`会把同一内容的其他待处理举报一并结掉。
+
+**管理员身份**：通过配置白名单授予，不需要在数据库里手工改角色。
+
+```properties
+app.admin.accounts=admin@example.com,13800138000
+```
+
+白名单里的账号注册即成为管理员；已存在的账号在启动时被自动提升。
+角色写在 JWT 的 claim 里，**改动角色后需要重新登录**才生效。
 
 > 当前两个 `CodeSender` 实现是**开发版**：验证码只打到后端日志，不会真的发信/发短信。
 > 接入真实通道时只需替换 `EmailCodeSender` / `SmsCodeSender` 里的 `send()` 方法体，
@@ -380,7 +414,7 @@ curl -s https://your-domain.com/actuator/health
 - [ ] 生成仍是同步阻塞，并发高时会占满 Tomcat 线程（`ai_template.gen_status` 已预留异步空间）。
 - [x] ~~注册接口无验证码/无限流~~（已完成：邮箱/手机号双通道 + Redis 验证码与限流）- [x] ~~AI 生成无配额~~（已完成：按用户 24h 滚动窗口限次，Redis 计数）
 - [ ] 一键导入无频率限制，广场 `sort=hot` 按 `importCount` 排序，理论上可被刷榜。
-- [ ] 广场暂无审核、举报、下架机制（UGC 内容合规风险）。
+- [x] ~~广场无审核、举报、下架机制~~（已完成：举报 + 管理后台 + 强制下架/恢复）
 - [ ] 软删除不彻底：删题集不级联清理 `answer_sheet` / `answer`。
 - [ ] 列表接口仍有少量 N+1（模板 tagline 每次解析 raw_json，可落成一列）。
 - [ ] 无单元测试（`CardJsonParser`、`PromptBuilder`、`JwtUtil`、`AccountMasker`、`LoginAttemptService` 最值得补）；前端零测试。

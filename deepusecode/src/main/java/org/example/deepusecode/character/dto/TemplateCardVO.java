@@ -19,4 +19,7 @@ public class TemplateCardVO {
     private String setTitle;
     private LocalDateTime createdAt;
     private boolean mine;
+    private boolean takenDown;
+    private String takedownReason;
+    private LocalDateTime takenDownAt;
 }

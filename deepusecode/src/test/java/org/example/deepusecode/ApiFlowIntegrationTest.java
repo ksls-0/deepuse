@@ -24,6 +24,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -483,6 +484,102 @@ class ApiFlowIntegrationTest {
         long otherSheet = saveSheet(otherToken, otherSet, otherIds, List.of("答案一"));
         assertTrue(post("/api/sets/" + otherSet + "/generate",
                 Map.of("sheetId", otherSheet), otherToken).ok(), "其他用户的配额应不受影响");
+    }
+    @Test
+    @DisplayName("内容审核：举报 → 下架 → 广场消失 → 恢复")
+    void moderationFlow() {
+        String authorToken = register("mod-author@example.com", "secret123");
+        String reporterToken = register("mod-reporter@example.com", "secret123");
+        // 测试 profile 把 admin@example.com 列进了 app.admin.accounts，注册即为 ADMIN
+        String adminToken = register("admin@example.com", "secret123");
+
+        long setId = createSet(authorToken, "可能违规的题集", List.of("问题一"));
+        assertTrue(patch("/api/sets/" + setId + "/visibility", Map.of("visibility", 1), authorToken).ok());
+
+        // 1. 普通用户访问管理接口应被拒（403，不是 401，因为他已登录）
+        assertEquals(403, get("/api/admin/reports/pending", reporterToken).status(),
+                "非管理员不能访问管理接口");
+
+        // 2. 举报成功
+        Res report = post("/api/reports", Map.of(
+                "targetType", "SET", "targetId", setId,
+                "reason", "广告骚扰", "detail", "测试举报"), reporterToken);
+        assertTrue(report.ok(), "举报失败: " + report.message());
+
+        // 3. 重复举报 409
+        assertEquals(409, post("/api/reports", Map.of(
+                "targetType", "SET", "targetId", setId, "reason", "广告骚扰"), reporterToken).status());
+
+        // 4. 不能举报自己
+        assertEquals(400, post("/api/reports", Map.of(
+                "targetType", "SET", "targetId", setId, "reason", "其他"), authorToken).status());
+
+        // 5. 管理员能看到待处理
+        Res pending = get("/api/admin/reports/pending", adminToken);
+        assertTrue(pending.ok(), "管理员拉取审核队列失败: " + pending.message());
+        JsonNode target = findByField(pending.data().path("items"), "targetId", setId);
+        assertNotNull(target, "审核队列里应出现这条举报");
+        long reportId = target.path("id").asLong();
+        assertEquals("SET", target.path("targetType").asText());
+
+        // 6. 举报成立 → 下架
+        assertTrue(post("/api/admin/reports/" + reportId + "/handle",
+                Map.of("action", "TAKEDOWN", "note", "含广告内容"), adminToken).ok(),
+                "下架处理失败");
+
+        // 7. 广场里消失
+        assertNull(findByField(get("/api/explore/sets", null).data().path("items"), "id", setId),
+                "已下架内容不应出现在广场");
+        assertEquals(404, get("/api/explore/sets/" + setId, null).status(),
+                "他人不应能看到已下架内容");
+
+        // 8. 作者自己仍能看到，并带出下架原因
+        Res ownDetail = get("/api/sets/" + setId, authorToken);
+        assertTrue(ownDetail.ok(), "作者应仍能查看自己的题集");
+        assertTrue(ownDetail.data().path("takenDown").asBoolean(), "应标记为已下架");
+        assertEquals("含广告内容", ownDetail.data().path("takedownReason").asText());
+
+        // 9. 作者再切一次公开，也救不回来（平台处置优先于作者意愿）
+        assertTrue(patch("/api/sets/" + setId + "/visibility",
+                Map.of("visibility", 1), authorToken).ok());
+        assertNull(findByField(get("/api/explore/sets", null).data().path("items"), "id", setId),
+                "下架状态应优先于作者手动公开");
+
+        // 10. 恢复后重新出现在广场（作者原本就是公开状态）
+        assertTrue(post("/api/admin/SET/" + setId + "/restore", null, adminToken).ok(), "恢复失败");
+        assertNotNull(findByField(get("/api/explore/sets", null).data().path("items"), "id", setId),
+                "恢复后应重新公开");
+    }
+
+    @Test
+    @DisplayName("内容审核：举报驳回后内容不受影响")
+    void moderationReject() {
+        String authorToken = register("rej-author@example.com", "secret123");
+        String reporterToken = register("rej-reporter@example.com", "secret123");
+        String adminToken = register("admin2@example.com", "secret123");
+
+        long setId = createSet(authorToken, "正常题集", List.of("问题一"));
+        assertTrue(patch("/api/sets/" + setId + "/visibility", Map.of("visibility", 1), authorToken).ok());
+
+        assertTrue(post("/api/reports", Map.of(
+                "targetType", "SET", "targetId", setId, "reason", "其他"), reporterToken).ok());
+
+        Res pending = get("/api/admin/reports/pending", adminToken);
+        JsonNode target = findByField(pending.data().path("items"), "targetId", setId);
+        assertNotNull(target);
+        long reportId = target.path("id").asLong();
+
+        Res reject = post("/api/admin/reports/" + reportId + "/handle",
+                Map.of("action", "REJECT", "note", "内容正常"), adminToken);
+        assertTrue(reject.ok(), "驳回失败: " + reject.message());
+
+        // 内容仍在广场
+        assertNotNull(findByField(get("/api/explore/sets", null).data().path("items"), "id", setId),
+                "驳回后内容应保持不变");
+
+        // 已处理过的举报不能再处理
+        assertEquals(409, post("/api/admin/reports/" + reportId + "/handle",
+                Map.of("action", "REJECT"), adminToken).status());
     }
     // ===================== helpers =====================
 

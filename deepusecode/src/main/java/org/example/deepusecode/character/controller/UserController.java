@@ -115,7 +115,7 @@ public class UserController {
     @GetMapping("/me")
     public ApiResponse<UserVO> me() {
         User user = userService.findById(CurrentUser.id());
-        return ApiResponse.success(new UserVO(user.getId(), user.getAccount(), user.getCreateTime()));
+        return ApiResponse.success(new UserVO(user.getId(), user.getAccount(), user.getRole(), user.getCreateTime()));
     }
 
     // ===================== 内部 =====================
@@ -144,8 +144,8 @@ public class UserController {
     }
 
     private AuthResponse toAuth(User user) {
-        String token = jwtUtil.generateToken(user.getId(), user.getAccount());
-        return new AuthResponse(token, user.getId(), user.getAccount());
+        String token = jwtUtil.generateToken(user.getId(), user.getAccount(), user.getRole());
+        return new AuthResponse(token, user.getId(), user.getAccount(), user.getRole());
     }
 
     private String normalize(String value) {

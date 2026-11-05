@@ -26,4 +26,7 @@ public class TemplateVO {
     private String ownerAccount;
     private LocalDateTime createdAt;
     private boolean mine;
+    private boolean takenDown;
+    private String takedownReason;
+    private LocalDateTime takenDownAt;
 }
