@@ -13,14 +13,22 @@ public class SheetVO {
     private Long id;
     private Long setId;
     private String setTitle;
+    /** 昵称 */
     private String personaName;
-    private Integer personaAge;
-    private String personaOccupation;
+    /** 用户自定义的基础信息类别 */
+    private List<PersonaFieldVO> personaFields;
     private String note;
     private String label;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<Item> answers;
+
+    @Data
+    @Builder
+    public static class PersonaFieldVO {
+        private String label;
+        private String value;
+    }
 
     @Data
     @Builder

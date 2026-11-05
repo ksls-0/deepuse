@@ -16,6 +16,7 @@ import org.example.deepusecode.character.dto.UpdateTemplateRequest;
 import org.example.deepusecode.character.entity.AiTemplate;
 import org.example.deepusecode.character.entity.Answer;
 import org.example.deepusecode.character.entity.AnswerSheet;
+import org.example.deepusecode.character.entity.PersonaField;
 import org.example.deepusecode.character.entity.GenStatus;
 import org.example.deepusecode.character.entity.Question;
 import org.example.deepusecode.character.entity.Moderation;
@@ -23,6 +24,7 @@ import org.example.deepusecode.character.entity.QuestionSet;
 import org.example.deepusecode.character.entity.Visibility;
 import org.example.deepusecode.character.repository.AiTemplateRepository;
 import org.example.deepusecode.character.repository.AnswerRepository;
+import org.example.deepusecode.character.repository.PersonaFieldRepository;
 import org.example.deepusecode.character.repository.AnswerSheetRepository;
 import org.example.deepusecode.character.repository.QuestionRepository;
 import org.example.deepusecode.character.repository.QuestionSetRepository;
@@ -50,6 +52,7 @@ public class TemplateService {
     private final QuestionRepository questionRepository;
     private final AnswerSheetRepository sheetRepository;
     private final AnswerRepository answerRepository;
+    private final PersonaFieldRepository personaFieldRepository;
     private final QuestionSetService questionSetService;
     private final UserAccountResolver accountResolver;
     private final PromptBuilder promptBuilder;
@@ -157,12 +160,16 @@ public class TemplateService {
                 .map(q -> new CharacterPromptContext.Qa(q.getContent(), answerByQuestion.get(q.getId())))
                 .toList();
 
+        List<CharacterPromptContext.Field> personaFields =
+                personaFieldRepository.findBySheetIdOrderBySortOrderAscIdAsc(sheet.getId()).stream()
+                        .map(f -> new CharacterPromptContext.Field(f.getLabel(), f.getValue()))
+                        .toList();
+
         return new CharacterPromptContext(
                 set.getTitle(),
                 set.getDescription(),
                 sheet.getPersonaName(),
-                sheet.getPersonaAge(),
-                sheet.getPersonaOccupation(),
+                personaFields,
                 sheet.getNote(),
                 qa
         );

@@ -7,10 +7,12 @@ import org.example.deepusecode.character.dto.SheetBriefVO;
 import org.example.deepusecode.character.dto.SheetVO;
 import org.example.deepusecode.character.entity.Answer;
 import org.example.deepusecode.character.entity.AnswerSheet;
+import org.example.deepusecode.character.entity.PersonaField;
 import org.example.deepusecode.character.entity.Question;
 import org.example.deepusecode.character.entity.QuestionSet;
 import org.example.deepusecode.character.repository.AnswerRepository;
 import org.example.deepusecode.character.repository.AnswerSheetRepository;
+import org.example.deepusecode.character.repository.PersonaFieldRepository;
 import org.example.deepusecode.character.repository.QuestionRepository;
 import org.example.deepusecode.character.repository.QuestionSetRepository;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class AnswerSheetService {
     private final QuestionRepository questionRepository;
     private final AnswerSheetRepository sheetRepository;
     private final AnswerRepository answerRepository;
+    private final PersonaFieldRepository personaFieldRepository;
 
     /** 某个题集下我的全部答卷（支持一人多份） */
     @Transactional(readOnly = true)
@@ -60,7 +63,7 @@ public class AnswerSheetService {
         set.setAnswerCount((int) sheetRepository.countBySetId(setId));
         setRepository.save(set);
 
-        return buildSheetVO(saved, set, questionRepository.findBySetIdOrderBySortOrderAscIdAsc(setId), List.of());
+        return buildSheetVO(saved, set, questionRepository.findBySetIdOrderBySortOrderAscIdAsc(setId), List.of(), List.of());
     }
 
     /**
@@ -77,9 +80,10 @@ public class AnswerSheetService {
                 : sheetRepository.findFirstBySetIdAndUserIdOrderByIdDesc(setId, userId).orElse(null);
 
         if (sheet == null) {
-            return buildSheetVO(null, set, questions, List.of());
+            return buildSheetVO(null, set, questions, List.of(), List.of());
         }
-        return buildSheetVO(sheet, set, questions, answerRepository.findBySheetId(sheet.getId()));
+        return buildSheetVO(sheet, set, questions, answerRepository.findBySheetId(sheet.getId()),
+                personaFieldRepository.findBySheetIdOrderBySortOrderAscIdAsc(sheet.getId()));
     }
 
     /**
@@ -111,13 +115,30 @@ public class AnswerSheetService {
         }
 
         sheet.setPersonaName(trimToNull(request.getPersonaName()));
-        sheet.setPersonaAge(request.getPersonaAge());
-        sheet.setPersonaOccupation(trimToNull(request.getPersonaOccupation()));
         sheet.setNote(trimToNull(request.getNote()));
         if (request.getLabel() != null && !request.getLabel().isBlank()) {
             sheet.setLabel(request.getLabel().trim());
         }
         sheetRepository.save(sheet);
+
+        // 基础信息类别：整体覆盖式更新
+        personaFieldRepository.deleteBySheetId(sheet.getId());
+        List<PersonaField> fields = new ArrayList<>();
+        if (request.getPersonaFields() != null) {
+            int order = 0;
+            for (SaveSheetRequest.PersonaFieldItem item : request.getPersonaFields()) {
+                if (item == null || item.getLabel() == null || item.getLabel().isBlank()) {
+                    continue;
+                }
+                PersonaField field = new PersonaField();
+                field.setSheetId(sheet.getId());
+                field.setLabel(item.getLabel().trim());
+                field.setValue(item.getValue() == null ? "" : item.getValue().trim());
+                field.setSortOrder(order++);
+                fields.add(field);
+            }
+        }
+        personaFieldRepository.saveAll(fields);
 
         answerRepository.deleteBySheetId(sheet.getId());
         List<Answer> toSave = new ArrayList<>();
@@ -139,7 +160,7 @@ public class AnswerSheetService {
         }
         answerRepository.saveAll(toSave);
 
-        return buildSheetVO(sheet, set, questions, toSave);
+        return buildSheetVO(sheet, set, questions, toSave, fields);
     }
 
     private AnswerSheet loadOwnedSheet(Long userId, Long setId, Long sheetId) {
@@ -152,7 +173,8 @@ public class AnswerSheetService {
     }
 
     private SheetVO buildSheetVO(AnswerSheet sheet, QuestionSet set,
-                                 List<Question> questions, List<Answer> answers) {
+                                 List<Question> questions, List<Answer> answers,
+                                 List<PersonaField> personaFields) {
         Map<Long, String> answerByQuestion = new HashMap<>();
         for (Answer answer : answers) {
             answerByQuestion.put(answer.getQuestionId(), answer.getContent());
@@ -172,8 +194,12 @@ public class AnswerSheetService {
                 .setId(set.getId())
                 .setTitle(set.getTitle())
                 .personaName(sheet == null ? null : sheet.getPersonaName())
-                .personaAge(sheet == null ? null : sheet.getPersonaAge())
-                .personaOccupation(sheet == null ? null : sheet.getPersonaOccupation())
+                .personaFields(personaFields == null ? List.of() : personaFields.stream()
+                        .map(f -> SheetVO.PersonaFieldVO.builder()
+                                .label(f.getLabel())
+                                .value(f.getValue())
+                                .build())
+                        .toList())
                 .note(sheet == null ? null : sheet.getNote())
                 .label(sheet == null ? null : sheet.getLabel())
                 .createdAt(sheet == null ? null : sheet.getCreatedAt())

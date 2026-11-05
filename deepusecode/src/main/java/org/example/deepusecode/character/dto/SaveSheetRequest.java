@@ -1,25 +1,31 @@
 package org.example.deepusecode.character.dto;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
 
+/**
+ * 保存答卷。
+ *
+ * <p>结构对应前端的两个步骤：</p>
+ * <ol>
+ *   <li><b>基础信息</b>：{@code personaName}（昵称，内置唯一字段）+ {@code personaFields}（用户自定义类别）</li>
+ *   <li><b>问答</b>：{@code answers}</li>
+ * </ol>
+ */
 @Data
 public class SaveSheetRequest {
 
-    @Size(max = 50, message = "角色名不能超过 50 个字符")
+    /** 角色昵称——内置的基本信息只有这一项 */
+    @Size(max = 50, message = "昵称不能超过 50 个字符")
     private String personaName;
 
-    @Min(value = 0, message = "年龄不能为负数")
-    @Max(value = 300, message = "年龄不合理")
-    private Integer personaAge;
-
-    @Size(max = 50, message = "职业不能超过 50 个字符")
-    private String personaOccupation;
+    /** 用户自定义的基础信息类别，如 (职业, 程序员)、(年龄, 28) */
+    @Valid
+    @Size(max = 20, message = "基础信息类别最多 20 项")
+    private List<PersonaFieldItem> personaFields;
 
     @Size(max = 1000, message = "补充说明不能超过 1000 个字符")
     private String note;
@@ -30,6 +36,15 @@ public class SaveSheetRequest {
 
     @Valid
     private List<Item> answers;
+
+    @Data
+    public static class PersonaFieldItem {
+        @Size(max = 50, message = "类别名不能超过 50 个字符")
+        private String label;
+
+        @Size(max = 500, message = "内容不能超过 500 个字符")
+        private String value;
+    }
 
     @Data
     public static class Item {

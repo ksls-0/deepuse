@@ -296,16 +296,21 @@ public class DeepSeekClient {
         ArrayNode personality = root.putArray("personality");
         personality.add("友善直接");
         personality.add("乐于分享");
-        if (ctx.personaOccupation() != null && !ctx.personaOccupation().isBlank()) {
-            personality.add(ctx.personaOccupation().trim() + "视角");
+        // 用用户自定义的第一条基础信息补一个性格标签，让 mock 更贴合输入
+        if (!ctx.filledFields().isEmpty()) {
+            personality.add(ctx.filledFields().get(0).value() + "视角");
         }
 
-        root.put("background",
-                "你是一名" + (ctx.personaOccupation() == null ? "用户" : ctx.personaOccupation())
-                        + (ctx.personaAge() == null ? "" : "，" + ctx.personaAge() + " 岁")
-                        + "。这个角色由题集《" + (ctx.setName() == null ? "未命名题集" : ctx.setName())
-                        + "》的 " + ctx.answeredCount() + " 条问答拼装而成。"
-                        + "（当前为 mock 数据，配置 DEEPSEEK_API_KEY 后会由模型真实生成。）");
+        StringBuilder bg = new StringBuilder();
+        bg.append("你是「").append(name).append("」。");
+        for (CharacterPromptContext.Field field : ctx.filledFields()) {
+            bg.append(field.label()).append("：").append(field.value()).append("；");
+        }
+        bg.append("这个角色由题集《")
+                .append(ctx.setName() == null ? "未命名题集" : ctx.setName())
+                .append("》的 ").append(ctx.answeredCount()).append(" 条问答拼装而成。")
+                .append("（当前为 mock 数据，配置 DEEPSEEK_API_KEY 后会由模型真实生成。）");
+        root.put("background", bg.toString());
 
         root.put("speakingStyle", "口语化，句子不长，喜欢用具体的例子说明问题。");
 
@@ -332,11 +337,9 @@ public class DeepSeekClient {
         StringBuilder sb = new StringBuilder();
         sb.append("你现在要扮演「").append(ctx.displayName()).append("」。\n\n");
         sb.append("## 身份\n");
-        if (ctx.personaAge() != null) {
-            sb.append("年龄：").append(ctx.personaAge()).append('\n');
-        }
-        if (ctx.personaOccupation() != null && !ctx.personaOccupation().isBlank()) {
-            sb.append("职业：").append(ctx.personaOccupation().trim()).append('\n');
+        sb.append("昵称：").append(ctx.displayName()).append('\n');
+        for (CharacterPromptContext.Field field : ctx.filledFields()) {
+            sb.append(field.label().trim()).append("：").append(field.value().trim()).append('\n');
         }
         sb.append('\n');
 

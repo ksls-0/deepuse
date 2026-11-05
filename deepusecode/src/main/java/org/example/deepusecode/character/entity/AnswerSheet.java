@@ -38,15 +38,12 @@ public class AnswerSheet {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    /** 角色基本信息，属于“作答者”而不是题集 */
+    /**
+     * 角色昵称——内置的基本信息只有这一项。
+     * 其余信息（职业、年龄、兴趣…）由用户在 persona_field 里自定义类别。
+     */
     @Column(name = "persona_name", length = 50)
     private String personaName;
-
-    @Column(name = "persona_age")
-    private Integer personaAge;
-
-    @Column(name = "persona_occupation", length = 50)
-    private String personaOccupation;
 
     @Column(length = 1000)
     private String note;

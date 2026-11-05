@@ -49,6 +49,7 @@ schema 现在由 **Flyway 单一管理**，`spring.jpa.hibernate.ddl-auto=valida
 ```
 src/main/resources/db/migration/V1__init.sql      ← 8 张业务表的完整结构（含唯一索引）
 src/main/resources/db/migration/V2__moderation.sql ← 用户角色、内容下架字段、举报表
+src/main/resources/db/migration/V3__persona_fields.sql ← 自定义基础信息类别表（老数据自动迁移）
 ```
 
 - **全新空库**：启动时自动执行 V1 建表。
@@ -126,7 +127,8 @@ npm run serve
 | `app_user` | 用户。**表名不用 `user`**，因为 `user` 在 H2 / PostgreSQL 是保留字 |
 | `question_set` | 题集（可复用资产），带 `visibility` 与 `import_count` |
 | `question` | 题集下的有序问题 |
-| `answer_sheet` | 一次作答。**同一用户对同一题集可以有多份**，用于保存不同答案版本 |
+| `answer_sheet` | 一次作答。**同一用户对同一题集可以有多份**，用于保存不同答案版本；只内置「昵称」一个基础字段 |
+| `persona_field` | 答卷里的自定义基础信息类别（如 职业/年龄/兴趣），由用户自己定义类别名与内容 |
 | `answer` | 答卷中的单题答案 |
 | `ai_template` | AI 生成的角色模板：`content` 是 system prompt，`raw_json` 是结构化角色卡 |
 | `conversation` | 一次会话（用户 + 模板） |
@@ -310,7 +312,25 @@ DELETE /api/conversations/{id}
 
 ---
 
-## 五、AI 生成流程
+## 五、填写流程：先设定人物，再回答问题
+
+作答分两步，顺序不能反过来：
+
+**① 基础信息**
+
+- **昵称**——内置的唯一字段，必填
+- **基础信息类别**——由用户自己定义，例如「职业 / 古籍修复师」「年龄 / 34」「兴趣爱好 / 篆刻与茶」
+- 补充说明（选填）
+
+**② 问答**
+
+回答题集里的问题。留空的题不会进入 AI 的角色设定。
+
+> 设计取舍：内置字段只保留昵称，是因为"角色需要哪些维度"因题集而异——
+> 描述虚拟偶像时要"代表作"，描述程序员时要"技术栈"，写死年龄段和职业反而限制表达。
+> 老版本的 `persona_age` / `persona_occupation` 在 V3 迁移时会自动转成「年龄」「职业」两个自定义类别，不丢数据。
+
+## 六、AI 生成流程
 
 1. 前端提交答卷 → 后端拼 `CharacterPromptContext`（题集 + 问答 + 角色基本信息）。
 2. `PromptBuilder` 生成要求模型输出固定 JSON 结构的提示词。
@@ -328,7 +348,7 @@ DELETE /api/conversations/{id}
 
 ---
 
-## 六、测试
+## 七、测试
 
 ```bash
 cd deepusecode
@@ -336,7 +356,7 @@ mvn test
 ```
 
 - 使用 H2 内存库（MySQL 兼容模式），**不依赖本地 MySQL**。
-- `ApiFlowIntegrationTest` 共 5 个用例：
+- `ApiFlowIntegrationTest` 共 11 个用例：
   1. `fullJourney` — 注册 → 建题集 → 作答 → **改题集后答案不丢（id 稳定性回归）** →
      mock 生成 → 公开 → 游客浏览（校验账号已脱敏）→ 他人导入 → 同步对话两轮（校验上下文）→
      越权拦截 → 删除
@@ -344,13 +364,37 @@ mvn test
   3. `streamChatWorks` — SSE 逐段推送并完整落库
   4. `loginRateLimited` — 连续 5 次失败后返回 429
   5. `validationFailures` — 非法输入返回 400 且不泄漏内部信息
+  6. `emailAndPhoneRegistration` — 邮箱/手机号双通道注册登录，通道互不通用
+  7. `verifyCodeRules` — 验证码错误拒绝、一次性作废、跨通道不通用
+  8. `sendCodeRateLimited` — 60 秒内重复发码返回 429
+  9. `generationQuotaLimited` — AI 生成配额用尽返回 429，且不影响其他用户
+  10. `moderationFlow` — 举报 → 下架 → 广场消失 → 恢复
+  11. `moderationReject` — 举报驳回后内容不受影响、不可重复处理
 
 ---
 
+## 八、构建与运行环境注意事项
+
+这些都是实际踩过的坑，记录下来避免重复踩。
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| `Could not create local repository at D:\maven\repo` | Maven 的 `conf/settings.xml` 指向了不存在的仓库 | 用 `-s .build/settings.xml` 把仓库指到工作区内 |
+| `version can neither be null, empty nor blank` | `annotationProcessorPaths` **不继承** `dependencyManagement` | pom 里给 Lombok 显式写 `version` |
+| `spawn EPERM`（前端构建） | `thread-loader` 需要 spawn 带管道 stdio 的子进程 | `vue.config.js` 里 `parallel: false` |
+| 容器里出现两份 JWT filter | Filter 带 `@Component` 被 Boot 自动注册，又挂进 Security 链 | 该类不加 `@Component`，由 `SecurityConfig` 手工 `new` |
+| `MockMaker ... self-attach` 失败 | Mockito 内联 mock maker 需要 attach 外部进程 | `src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker` 写 `mock-maker-subclass` |
+| `cannot retry due to server authentication, in streaming mode` | `HttpURLConnection` 在「带 body + 401」时不返回响应 | 测试里换 `JdkClientHttpRequestFactory` |
+| SSE 读成 `chunked transfer encoding ... EOF` | `RestTemplate` 会把整段 body 一次读成 `byte[]`，不适合 `text/event-stream` | 验证 SSE 用原生 `java.net.http.HttpClient` 流式读取 |
+| **SSE 事件都收到了但连接一直不关闭** | 异步请求结束时容器做 ASYNC 派发，重新进 Security 链时 SecurityContext 已清空 | `SecurityConfig` 里 `dispatcherTypeMatchers(ASYNC, FORWARD, ERROR).permitAll()` |
+| **`user` / `value` 建表或查询报语法错误** | 它们是 H2（及部分数据库）的保留字 | 表名用 `app_user`；列名用 `field_value` 这类加前缀的写法 |
+| **`ddl-auto=update` 不给已有表补唯一索引** | Hibernate 的 update 只做「加表 / 加列」 | 换 Flyway 管理 schema，`ddl-auto=validate`；老库用 `baseline-on-migrate` 接管 |
+| **配了邮件却发不出去，日志说连空主机** | `spring.mail.host=${MAIL_HOST:}` 的空字符串被当成"已配置" | `spring.mail.host` 不写进配置文件，只由 `SPRING_MAIL_HOST` 环境变量提供 |
+| `-Dmaven.test.skip=true` 变成 "Unknown lifecycle phase" | PowerShell 把 `-Dx.y=z` 拆成两个参数 | 给参数加引号：`"-Dmaven.test.skip=true"` |
 
 ---
 
-## 八、部署（服务器）
+## 九、部署（服务器）
 
 ### 1. 构建物
 
@@ -429,7 +473,7 @@ curl -s https://your-domain.com/actuator/health
 
 ---
 
-## 九、已知待办
+## 十、已知待办
 
 - [x] ~~数据库密码 / `JWT_SECRET` / `DEEPSEEK_API_KEY` 外置到环境变量~~（已完成，见 `.env.example`）
 - [x] ~~健康检查端点~~（已完成，`/actuator/health`）

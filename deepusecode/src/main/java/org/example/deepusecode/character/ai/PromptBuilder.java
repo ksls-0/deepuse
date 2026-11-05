@@ -25,12 +25,10 @@ public class PromptBuilder {
         sb.append('\n');
 
         sb.append("【角色基本信息】\n");
-        sb.append("姓名：").append(ctx.displayName()).append('\n');
-        if (ctx.personaAge() != null) {
-            sb.append("年龄：").append(ctx.personaAge()).append('\n');
-        }
-        if (hasText(ctx.personaOccupation())) {
-            sb.append("职业：").append(ctx.personaOccupation().trim()).append('\n');
+        sb.append("昵称：").append(ctx.displayName()).append('\n');
+        // 其余信息由用户自定义类别，逐条按顺序列出
+        for (CharacterPromptContext.Field field : ctx.filledFields()) {
+            sb.append(field.label().trim()).append("：").append(field.value().trim()).append('\n');
         }
         if (hasText(ctx.note())) {
             sb.append("补充说明：").append(ctx.note().trim()).append('\n');

@@ -638,8 +638,10 @@ class ApiFlowIntegrationTest {
         }
         Res res = put("/api/sets/" + setId + "/sheet", Map.of(
                 "personaName", "林渡",
-                "personaAge", 28,
-                "personaOccupation", "独立开发者",
+                // 基础信息里只有昵称是内置的，其余由用户自定义类别
+                "personaFields", List.of(
+                        Map.of("label", "职业", "value", "独立开发者"),
+                        Map.of("label", "年龄", "value", "28")),
                 "note", "喜欢深夜写代码",
                 "answers", items
         ), token);
