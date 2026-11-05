@@ -314,7 +314,7 @@ sudo systemctl reload nginx
    否则流式回答会变成"卡半天然后一次性吐出来"。
 2. **server 级 `proxy_read_timeout 180s`**。
    Nginx 默认只有 60s，而 `POST /api/sets/{id}/generate` 和同步对话
-   `POST /api/conversations/{id}/chat` 要等 DeepSeek 返回，**60~90 秒很常见**。
+   `POST /api/conversations/{id}/chat` 要等 DeepSeek 返回（**实测约 10~15 秒**，但问答很长或上游抖动时会明显更久，60 秒仍然偏紧）。
    用默认值会被 Nginx 提前掐断返回 504，但**后端其实已经生成成功、额度也已经扣掉**，
    用户重试就是白烧额度还看不到结果。
 
@@ -387,12 +387,18 @@ curl -s -X POST https://your-domain.com/user/code/email \
 # {"code":0,"message":"验证码已发送","data":null}
 ```
 
-### 9.5 生成角色要能扛过 60 秒（验证 §7.3 那个修复）
+### 9.5 生成角色要走真 AI，并确认超时配置生效
 
-在页面上完整走一遍：建模板 → 填写 → 点生成。**故意观察耗时**：
-如果这次生成用了 70~90 秒但页面正常出结果，说明 Nginx 超时修复生效。
-如果 60 秒左右报"网络异常 / 504"，回去检查 `proxy_read_timeout` 是否真的加载了
-（`sudo nginx -T | grep read_timeout`）。
+在页面上完整走一遍：建模板 → 填写 → 点生成。
+
+**判据**：
+- 真实 AI 下大概 **10~20 秒**出结果（本机实测 3 题答卷 11.5 秒）。
+- 如果只用了 1~2 秒、内容明显是模板化占位文字，说明 `DEEPSEEK_API_KEY` 没生效，
+  回去看日志有没有 `未配置 DeepSeek API Key，生成角色降级为 mock`。
+- 如果 60 秒左右报"网络异常 / 504"，是 Nginx 超时没加载到配置：
+  `sudo nginx -T | grep read_timeout` 应该看到 `180s`。
+
+顺便看一眼耗时是不是合理，它决定了明天演示的节奏。
 
 ### 9.6 流式对话
 

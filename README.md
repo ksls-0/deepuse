@@ -445,7 +445,7 @@ sudo nginx -t && sudo systemctl reload nginx
 - `proxy_read_timeout 300s;` —— 必须大于后端 `SseEmitter` 的 180s 超时
 - `proxy_set_header X-Forwarded-For ...` —— 登录限流按真实 IP 计数，少了这个头所有人共用代理 IP 的额度
 - **server 级 `proxy_read_timeout 180s`** —— 默认只有 60s，而生成角色/同步对话要等 DeepSeek
-  （60~90s 很常见），用默认值会被提前掐断返回 504，而后端其实已经成功、额度也已扣掉
+  （实测 10~15s，长问答或上游抖动会更久），用默认值会被提前掐断返回 504，而后端其实已经成功、额度也已扣掉
 
 ### 5. 上线自检清单
 

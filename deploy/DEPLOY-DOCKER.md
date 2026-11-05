@@ -218,11 +218,14 @@ curl -s -X POST http://<ECS公网IP>/user/code/email \
 docker compose logs --tail=20 app | grep 验证码
 ```
 
-### 6.5 生成角色要能扛过 60 秒
+### 6.5 生成角色要走真 AI，并确认超时配置生效
 
-页面走一遍：建模板 → 填写 → 点生成。**故意看耗时**：
-如果用了 70~90 秒但正常出结果，说明 Nginx 超时配置生效。
-60 秒左右报 504 就是没加载到配置：
+页面走一遍：建模板 → 填写 → 点生成。
+
+- 真实 AI 下大概 **10~20 秒**出结果（本机实测 3 题答卷 11.5 秒）
+- 1~2 秒就出、内容是模板化占位文字 → `DEEPSEEK_API_KEY` 没生效，
+  看日志有没有 `未配置 DeepSeek API Key，生成角色降级为 mock`
+- 60 秒左右报 504 → Nginx 超时没加载到配置：
 
 ```bash
 docker compose exec nginx nginx -T | grep read_timeout    # 应该看到 180s / 300s
