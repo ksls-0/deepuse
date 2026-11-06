@@ -1,0 +1,283 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" font-family="'Microsoft YaHei','PingFang SC','Noto Sans SC','Source Han Sans SC',sans-serif">
+
+  <defs>
+    <!-- 背景渐变：深蓝黑 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#050c18"/>
+      <stop offset="0.45" stop-color="#08152a"/>
+      <stop offset="1" stop-color="#040910"/>
+    </linearGradient>
+
+    <!-- 青色光晕 -->
+    <radialGradient id="glowTop" cx="0.12" cy="0.06" r="0.55">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBottom" cx="0.9" cy="0.92" r="0.5">
+      <stop offset="0" stop-color="#2563eb" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- 网格 -->
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#1b3f66" stroke-width="1" stroke-opacity="0.45"/>
+    </pattern>
+    <pattern id="gridBig" width="180" height="180" patternUnits="userSpaceOnUse">
+      <path d="M180 0H0V180" fill="none" stroke="#2a5f8f" stroke-width="1" stroke-opacity="0.35"/>
+    </pattern>
+
+    <!-- 卡片渐变 -->
+    <linearGradient id="card" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#0d2440" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#081827" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="cardEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.85"/>
+      <stop offset="0.55" stop-color="#22d3ee" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#38bdf8" stop-opacity="0.75"/>
+    </linearGradient>
+
+    <!-- 发光 -->
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- 顶部标题渐变字 -->
+    <linearGradient id="heroText" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.72" stop-color="#e6fbff"/>
+      <stop offset="1" stop-color="#5ee9ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ================= 背景 ================= -->
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <rect width="1080" height="1920" fill="url(#grid)"/>
+  <rect width="1080" height="1920" fill="url(#gridBig)"/>
+  <rect width="1080" height="1920" fill="url(#glowTop)"/>
+  <rect width="1080" height="1920" fill="url(#glowBottom)"/>
+
+  <!-- 拓扑连线（背景装饰） -->
+  <g stroke="#22d3ee" stroke-opacity="0.20" fill="none" stroke-width="1.2">
+    <path d="M60 300 L190 240 L320 320 L250 430 L110 400 Z"/>
+    <path d="M820 210 L950 150 L1040 260 L980 380 L860 340 Z"/>
+    <path d="M880 520 L1000 470 L1040 590"/>
+    <path d="M40 1180 L170 1120 L300 1210"/>
+    <path d="M760 1500 L890 1440 L1010 1520 L960 1640"/>
+    <path d="M120 1700 L240 1650 L360 1730"/>
+  </g>
+  <g fill="#22d3ee" fill-opacity="0.42">
+    <circle cx="60" cy="300" r="3.5"/><circle cx="190" cy="240" r="2.6"/><circle cx="320" cy="320" r="3.5"/>
+    <circle cx="250" cy="430" r="2.6"/><circle cx="110" cy="400" r="2.6"/>
+    <circle cx="820" cy="210" r="3.5"/><circle cx="950" cy="150" r="2.6"/><circle cx="1040" cy="260" r="3.5"/>
+    <circle cx="980" cy="380" r="2.6"/><circle cx="860" cy="340" r="2.6"/>
+    <circle cx="880" cy="520" r="2.6"/><circle cx="1000" cy="470" r="3.5"/><circle cx="1040" cy="590" r="2.6"/>
+    <circle cx="40" cy="1180" r="2.6"/><circle cx="170" cy="1120" r="3.5"/><circle cx="300" cy="1210" r="2.6"/>
+    <circle cx="760" cy="1500" r="2.6"/><circle cx="890" cy="1440" r="3.5"/><circle cx="1010" cy="1520" r="2.6"/><circle cx="960" cy="1640" r="2.6"/>
+    <circle cx="120" cy="1700" r="2.6"/><circle cx="240" cy="1650" r="3.5"/><circle cx="360" cy="1730" r="2.6"/>
+  </g>
+
+  <!-- ================= 顶部 ================= -->
+  <g>
+    <!-- Logo 占位 -->
+    <rect x="72" y="64" width="64" height="64" rx="16" fill="#0a2036" stroke="url(#cardEdge)" stroke-width="2"/>
+    <g stroke="#22d3ee" stroke-width="2" fill="none" stroke-linecap="round">
+      <path d="M92 96 L104 84 L116 100"/>
+      <path d="M104 84 L116 100" stroke-opacity="0.5"/>
+    </g>
+    <g fill="#5ee9ff">
+      <circle cx="92" cy="96" r="3"/><circle cx="104" cy="84" r="3"/><circle cx="116" cy="100" r="3"/>
+    </g>
+
+    <text x="154" y="98" font-size="40" font-weight="700" fill="#ffffff" letter-spacing="1">角色工坊</text>
+    <text x="356" y="96" font-size="24" font-weight="600" fill="#22d3ee" letter-spacing="3">RoleForge</text>
+    <text x="154" y="132" font-size="19" fill="#8fb2d4" letter-spacing="0.6">问答驱动的企业级 AI 角色生产与运营平台</text>
+
+    <!-- 右上角科技感勾选 -->
+    <g filter="url(#softGlow)">
+      <circle cx="972" cy="96" r="30" fill="none" stroke="#22d3ee" stroke-width="2"/>
+      <circle cx="972" cy="96" r="38" fill="none" stroke="#22d3ee" stroke-width="1"
+              stroke-opacity="0.35" stroke-dasharray="5 9"/>
+      <path d="M960 96 L969 105 L985 87" fill="none" stroke="#5ee9ff" stroke-width="3.2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="1008" y="158" font-size="12.5" fill="#5b7fa6" text-anchor="end" letter-spacing="2.4"
+          font-family="'Cascadia Mono',Consolas,monospace">ENTERPRISE v1.0</text>
+  </g>
+
+  <!-- ================= Hero ================= -->
+  <text x="72" y="206" font-size="13" fill="#22d3ee" letter-spacing="4.2"
+        font-family="'Cascadia Mono',Consolas,monospace">AI CHARACTER PLATFORM</text>
+
+  <text x="72" y="286" font-size="66" font-weight="700" fill="url(#heroText)" letter-spacing="1.5">打破经验孤岛</text>
+  <text x="72" y="366" font-size="66" font-weight="700" fill="url(#heroText)" letter-spacing="1.5">一键生成可对话角色</text>
+
+  <rect x="72" y="392" width="5" height="26" rx="2.5" fill="#22d3ee"/>
+  <text x="92" y="413" font-size="20" fill="#9fc0dc">一份问答 → 一张结构化角色卡 → 一段可持续的对话</text>
+  <text x="92" y="441" font-size="16" fill="#5f89ad">从作答到可用角色实测 11 秒　·　模板可复用　·　角色可分享　·　对话可沉淀</text>
+
+  <!-- 分隔线 -->
+  <line x1="72" y1="474" x2="1008" y2="474" stroke="#1d4269" stroke-width="1"/>
+
+  <!-- ================= 核心能力 ================= -->
+  <text x="72" y="518" font-size="13" fill="#22d3ee" letter-spacing="4"
+        font-family="'Cascadia Mono',Consolas,monospace">CORE CAPABILITIES</text>
+  <text x="72" y="556" font-size="30" font-weight="700" fill="#ffffff">核心能力</text>
+  <text x="1008" y="552" font-size="13" fill="#59809f" text-anchor="end" letter-spacing="2"
+        font-family="'Cascadia Mono',Consolas,monospace">04 MODULES</text>
+
+  <!-- 卡片 1 -->
+  <g>
+    <rect x="72" y="580" width="456" height="252" rx="18" fill="url(#card)" stroke="url(#cardEdge)" stroke-width="1.6"/>
+    <g stroke="#22d3ee" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(100,612)">
+      <rect x="0" y="0" width="34" height="40" rx="5"/>
+      <path d="M8 12 H26 M8 20 H26 M8 28 H19"/>
+    </g>
+    <text x="152" y="644" font-size="23" font-weight="700" fill="#ffffff">结构化问答模板</text>
+    <text x="100" y="700" font-size="17" fill="#a7c1d8">先填人物基础信息，再逐题作答；</text>
+    <text x="100" y="730" font-size="17" fill="#a7c1d8">自定义信息类别，一套模板多份答卷。</text>
+    <text x="500" y="812" font-size="12" fill="#22d3ee" fill-opacity="0.55" text-anchor="end"
+          font-family="'Cascadia Mono',Consolas,monospace">01</text>
+  </g>
+
+  <!-- 卡片 2 -->
+  <g>
+    <rect x="552" y="580" width="456" height="252" rx="18" fill="url(#card)" stroke="url(#cardEdge)" stroke-width="1.6"/>
+    <g stroke="#22d3ee" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(580,612)">
+      <path d="M17 2 L21 13 L32 17 L21 21 L17 32 L13 21 L2 17 L13 13 Z"/>
+    </g>
+    <text x="632" y="644" font-size="23" font-weight="700" fill="#ffffff">DeepSeek 角色生成</text>
+    <text x="580" y="700" font-size="17" fill="#a7c1d8">问答直出结构化角色卡：性格、背景、</text>
+    <text x="580" y="730" font-size="17" fill="#a7c1d8">口头禅、示例对话与 system prompt。</text>
+    <text x="980" y="812" font-size="12" fill="#22d3ee" fill-opacity="0.55" text-anchor="end"
+          font-family="'Cascadia Mono',Consolas,monospace">02</text>
+  </g>
+
+  <!-- 卡片 3 -->
+  <g>
+    <rect x="72" y="848" width="456" height="252" rx="18" fill="url(#card)" stroke="url(#cardEdge)" stroke-width="1.6"/>
+    <g stroke="#22d3ee" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(100,880)">
+      <path d="M2 6 H32 V30 H14 L6 38 V30 H2 Z"/>
+      <path d="M9 14 H25 M9 21 H19" stroke-opacity="0.75"/>
+    </g>
+    <text x="152" y="912" font-size="23" font-weight="700" fill="#ffffff">流式对话 SSE</text>
+    <text x="100" y="968" font-size="17" fill="#a7c1d8">逐字流式输出，首字 0.16 秒；</text>
+    <text x="100" y="998" font-size="17" fill="#a7c1d8">带上下文记忆与预算截断，不跳戏。</text>
+    <text x="500" y="1080" font-size="12" fill="#22d3ee" fill-opacity="0.55" text-anchor="end"
+          font-family="'Cascadia Mono',Consolas,monospace">03</text>
+  </g>
+
+  <!-- 卡片 4 -->
+  <g>
+    <rect x="552" y="848" width="456" height="252" rx="18" fill="url(#card)" stroke="url(#cardEdge)" stroke-width="1.6"/>
+    <g stroke="#22d3ee" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(580,880)">
+      <path d="M17 2 L30 7 V19 C30 27 24 33 17 36 C10 33 4 27 4 19 V7 Z"/>
+      <path d="M11 18 L15 23 L24 12" stroke-opacity="0.9"/>
+    </g>
+    <text x="632" y="912" font-size="23" font-weight="700" fill="#ffffff">广场与内容治理</text>
+    <text x="580" y="968" font-size="17" fill="#a7c1d8">模板与角色一键公开、一键导入；</text>
+    <text x="580" y="998" font-size="17" fill="#a7c1d8">举报审核、强制下架、配额限流内置。</text>
+    <text x="980" y="1080" font-size="12" fill="#22d3ee" fill-opacity="0.55" text-anchor="end"
+          font-family="'Cascadia Mono',Consolas,monospace">04</text>
+  </g>
+
+  <!-- ================= 核心优势 ================= -->
+  <line x1="72" y1="1142" x2="1008" y2="1142" stroke="#1d4269" stroke-width="1"/>
+  <text x="72" y="1186" font-size="13" fill="#22d3ee" letter-spacing="4"
+        font-family="'Cascadia Mono',Consolas,monospace">WHY US</text>
+  <text x="72" y="1224" font-size="30" font-weight="700" fill="#ffffff">为什么选择我们</text>
+
+  <g font-size="20">
+    <text x="72" y="1282" font-size="17" fill="#22d3ee" font-family="'Cascadia Mono',Consolas,monospace">01</text>
+    <text x="130" y="1282" font-weight="700" fill="#ffffff">问答即资产</text>
+    <text x="252" y="1282" fill="#95b3cd">一次采集，反复生成，知识留在自己手里</text>
+    <line x1="72" y1="1304" x2="1008" y2="1304" stroke="#17395c" stroke-width="1"/>
+
+    <text x="72" y="1348" font-size="17" fill="#22d3ee" font-family="'Cascadia Mono',Consolas,monospace">02</text>
+    <text x="130" y="1348" font-weight="700" fill="#ffffff">生产即治理</text>
+    <text x="252" y="1348" fill="#95b3cd">下架、举报、配额、限流全部内置，合规不用二次开发</text>
+    <line x1="72" y1="1370" x2="1008" y2="1370" stroke="#17395c" stroke-width="1"/>
+
+    <text x="72" y="1414" font-size="17" fill="#22d3ee" font-family="'Cascadia Mono',Consolas,monospace">03</text>
+    <text x="130" y="1414" font-weight="700" fill="#ffffff">交付即单体</text>
+    <text x="252" y="1414" fill="#95b3cd">一个 jar 含前端与 API，Docker 与裸机双形态，十分钟上线</text>
+    <line x1="72" y1="1436" x2="1008" y2="1436" stroke="#17395c" stroke-width="1"/>
+
+    <text x="72" y="1480" font-size="17" fill="#22d3ee" font-family="'Cascadia Mono',Consolas,monospace">04</text>
+    <text x="130" y="1480" font-weight="700" fill="#ffffff">数据即私有</text>
+    <text x="252" y="1480" fill="#95b3cd">JWT 无状态鉴权，密钥全部外置，敏感配置不进仓库</text>
+  </g>
+  <line x1="72" y1="1502" x2="1008" y2="1502" stroke="#1d4269" stroke-width="1"/>
+
+  <!-- ================= 适用角色 ================= -->
+  <text x="72" y="1546" font-size="13" fill="#22d3ee" letter-spacing="4"
+        font-family="'Cascadia Mono',Consolas,monospace">FOR WHOM</text>
+  <text x="72" y="1584" font-size="30" font-weight="700" fill="#ffffff">适用角色</text>
+
+  <g font-size="18" fill="#c9e6f5">
+    <g>
+      <rect x="72" y="1600" width="116" height="48" rx="24" fill="#0b2137" stroke="#1e6f8c" stroke-width="1.4"/>
+      <text x="130" y="1631" text-anchor="middle">产品经理</text>
+    </g>
+    <g>
+      <rect x="200" y="1600" width="116" height="48" rx="24" fill="#0b2137" stroke="#1e6f8c" stroke-width="1.4"/>
+      <text x="258" y="1631" text-anchor="middle">知识运营</text>
+    </g>
+    <g>
+      <rect x="328" y="1600" width="136" height="48" rx="24" fill="#0b2137" stroke="#1e6f8c" stroke-width="1.4"/>
+      <text x="396" y="1631" text-anchor="middle">培训负责人</text>
+    </g>
+    <g>
+      <rect x="476" y="1600" width="116" height="48" rx="24" fill="#0b2137" stroke="#1e6f8c" stroke-width="1.4"/>
+      <text x="534" y="1631" text-anchor="middle">客户成功</text>
+    </g>
+    <g>
+      <rect x="604" y="1600" width="116" height="48" rx="24" fill="#0b2137" stroke="#1e6f8c" stroke-width="1.4"/>
+      <text x="662" y="1631" text-anchor="middle">一线专家</text>
+    </g>
+    <g>
+      <rect x="732" y="1600" width="116" height="48" rx="24" fill="#0b2137" stroke="#1e6f8c" stroke-width="1.4"/>
+      <text x="790" y="1631" text-anchor="middle">长辈用户</text>
+    </g>
+  </g>
+
+  <!-- ================= 技术架构 ================= -->
+  <rect x="72" y="1688" width="936" height="102" rx="16" fill="#081c2e" fill-opacity="0.85"
+        stroke="#1e6f8c" stroke-width="1.4"/>
+  <text x="100" y="1720" font-size="12.5" fill="#22d3ee" letter-spacing="3.6"
+        font-family="'Cascadia Mono',Consolas,monospace">TECH STACK</text>
+  <text x="100" y="1758" font-size="16" fill="#dceffa" letter-spacing="0.3">Spring Boot 3.2 · MySQL 8 · Redis · Flyway · DeepSeek · SSE · Vue 3 · Nginx · Docker</text>
+
+  <g stroke="#22d3ee" stroke-opacity="0.5" stroke-width="1.1" fill="none">
+    <path d="M880 1744 L910 1726 L946 1738 L972 1720"/>
+    <path d="M880 1744 L918 1760 L952 1750 L978 1764"/>
+  </g>
+  <g fill="#22d3ee" fill-opacity="0.75">
+    <circle cx="880" cy="1744" r="3"/><circle cx="910" cy="1726" r="2.4"/><circle cx="946" cy="1738" r="3"/>
+    <circle cx="972" cy="1720" r="2.4"/><circle cx="918" cy="1760" r="2.4"/><circle cx="952" cy="1750" r="3"/>
+    <circle cx="978" cy="1764" r="2.4"/>
+  </g>
+
+  <!-- ================= 底部行动点 ================= -->
+  <line x1="72" y1="1820" x2="1008" y2="1820" stroke="#1d4269" stroke-width="1"/>
+
+  <g>
+    <!-- 二维码占位 + 瞄准框 -->
+    <rect x="72" y="1838" width="64" height="64" rx="6" fill="#0a1c2e" stroke="#1e4f70" stroke-width="1.2"/>
+    <g stroke="#22d3ee" stroke-width="2" fill="none" stroke-linecap="round">
+      <path d="M78 1852 V1844 H86"/>
+      <path d="M150 1844 H142 V1852"/>
+      <path d="M78 1888 V1896 H86"/>
+      <path d="M150 1896 H142 V1888"/>
+    </g>
+    <text x="104" y="1877" font-size="11" fill="#4b7395" text-anchor="middle"
+          font-family="'Cascadia Mono',Consolas,monospace">QR</text>
+  </g>
+
+  <text x="164" y="1866" font-size="26" font-weight="700" fill="#ffffff" letter-spacing="1">扫码预约试用</text>
+  <text x="164" y="1894" font-size="15.5" fill="#8fb2d4">contact@roleforge.dev　·　微信 RoleForge-Support</text>
+
+  <text x="1008" y="1894" font-size="11.5" fill="#43678a" text-anchor="end" letter-spacing="1.4"
+        font-family="'Cascadia Mono',Consolas,monospace">© 2026 ROLEFORGE · ALL RIGHTS RESERVED</text>
+</svg>

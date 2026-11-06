@@ -57,3 +57,9 @@ deploy/docker/certs/*
 # ---- 部署传输包 ----
 *.tar.gz
 deepusecode-deploy.tar.gz
+
+# ---- 海报设计目录的构建产物与依赖 ----
+design/node_modules/
+design/npm-cache/
+design/package.json
+design/package-lock.json
