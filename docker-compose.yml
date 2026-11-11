@@ -28,7 +28,14 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_0900_ai_ci
       - --default-time-zone=+08:00
-      - --max-connections=200
+      # 2G 内存机器：连接数和 buffer pool 都必须压下来，
+      # 默认 max-connections=151 + buffer pool 128M 会和 JVM 抢内存
+      - --max-connections=80
+      - --innodb-buffer-pool-size=64M
+      - --performance-schema=OFF
+      - --skip-name-resolve
+    # 硬上限，防止 MySQL 吃满把 app 顶掉
+    mem_limit: 512m
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -53,6 +60,12 @@ services:
       - "yes"
       - --bind
       - "0.0.0.0"
+      # 验证码和配额都是小键，64M 上限足够，超了按 LRU 淘汰
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - allkeys-lru
+    mem_limit: 96m
     volumes:
       - redis-data:/data
     healthcheck:
@@ -89,13 +102,19 @@ services:
       REDIS_DB: "0"
       LOG_FILE: logs/deepusecode.log
       TZ: Asia/Shanghai
-      # 2 核 2G 的机器把这里换成 -Xms256m -Xmx768m
+      # 1.7G 内存的机器只能用 512m 堆；4G 以上可以改成 -Xmx1536m
       JAVA_TOOL_OPTIONS: >-
-        -Xms512m -Xmx1536m
+        -Xms256m -Xmx512m
+        -XX:MaxMetaspaceSize=192m
+        -XX:MaxDirectMemorySize=64m
+        -Xss512k
+        -XX:+UseSerialGC
         -Duser.timezone=Asia/Shanghai
         -Dfile.encoding=UTF-8
         -XX:+HeapDumpOnOutOfMemoryError
         -XX:HeapDumpPath=/app/logs
+    # 硬上限：JVM 512m 堆 + 元空间 + 线程栈，给到 900m 够用且不会顶掉 MySQL
+    mem_limit: 800m
     volumes:
       # 日志落到宿主机，方便 tail -f；权限问题见 deploy/DEPLOY-DOCKER.md §6
       - ./logs:/app/logs
@@ -120,6 +139,7 @@ services:
     volumes:
       - ./deploy/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./deploy/docker/certs:/etc/nginx/certs:ro
+    mem_limit: 64m
     environment:
       TZ: Asia/Shanghai
     networks: [backend]
