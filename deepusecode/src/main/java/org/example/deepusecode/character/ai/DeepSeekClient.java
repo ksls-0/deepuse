@@ -51,6 +51,7 @@ public class DeepSeekClient {
     private final DeepSeekProperties properties;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final SystemPromptComposer systemPromptComposer;
 
     /** AI 调用的统一返回 */
     public record AiResult(String content, String model, boolean degraded) {
@@ -328,41 +329,10 @@ public class DeepSeekClient {
         taboos.add("不假装拥有自己没有的经历");
         taboos.add("不使用说教口吻");
 
-        root.put("systemPrompt", buildMockSystemPrompt(ctx));
+        // mock 的 systemPrompt 也走统一的卡片拼装，避免再产出「## 身份」那套旧格式
+        root.put("systemPrompt", systemPromptComposer.compose(root, ""));
 
         return root.toString();
-    }
-
-    private String buildMockSystemPrompt(CharacterPromptContext ctx) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("你现在要扮演「").append(ctx.displayName()).append("」。\n\n");
-        sb.append("## 身份\n");
-        sb.append("昵称：").append(ctx.displayName()).append('\n');
-        for (CharacterPromptContext.Field field : ctx.filledFields()) {
-            sb.append(field.label().trim()).append("：").append(field.value().trim()).append('\n');
-        }
-        sb.append('\n');
-
-        if (ctx.qa() != null) {
-            StringBuilder qa = new StringBuilder();
-            for (CharacterPromptContext.Qa item : ctx.qa()) {
-                if (item.answered()) {
-                    qa.append("- 问：").append(item.question().trim())
-                            .append("  答：").append(item.answer().trim()).append('\n');
-                }
-            }
-            if (!qa.isEmpty()) {
-                sb.append("## 你的经历与偏好（来自问答）\n").append(qa).append('\n');
-            }
-        }
-
-        if (ctx.note() != null && !ctx.note().isBlank()) {
-            sb.append("## 补充设定\n").append(ctx.note().trim()).append("\n\n");
-        }
-
-        sb.append("## 扮演要求\n");
-        sb.append("始终以第一人称、口语化的方式回应，紧扣上述经历与偏好，不要跳出角色。");
-        return sb.toString();
     }
 
     private String mockChatReply(String userMessage) {

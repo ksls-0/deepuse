@@ -7,6 +7,7 @@ import org.example.deepusecode.character.ai.CardJsonParser;
 import org.example.deepusecode.character.ai.CharacterPromptContext;
 import org.example.deepusecode.character.ai.DeepSeekClient;
 import org.example.deepusecode.character.ai.PromptBuilder;
+import org.example.deepusecode.character.ai.SystemPromptComposer;
 import org.example.deepusecode.character.common.AccountMasker;
 import org.example.deepusecode.character.common.BusinessException;
 import org.example.deepusecode.character.common.PageResult;
@@ -46,6 +47,8 @@ public class TemplateService {
 
     private static final int NOT_DELETED = 0;
     private static final int NOT_TAKEN_DOWN = Moderation.NOT_TAKEN_DOWN;
+    /** 旧版 system prompt 里问答小节的标题，仅在数据修复时用来把问答捞回来 */
+    private static final String LEGACY_QA_HEAD = "## 你的经历与偏好（来自问答）";
 
     private final AiTemplateRepository templateRepository;
     private final QuestionSetRepository setRepository;
@@ -58,6 +61,7 @@ public class TemplateService {
     private final PromptBuilder promptBuilder;
     private final DeepSeekClient deepSeekClient;
     private final CardJsonParser cardJsonParser;
+    private final SystemPromptComposer systemPromptComposer;
     private final QuotaService quotaService;
 
     // ===================== 生成 =====================
@@ -176,6 +180,70 @@ public class TemplateService {
     }
 
     // ===================== 私有角色 =====================
+
+    /**
+     * 一次性数据修复：把 mock 时代的角色按结构化卡片重算 system prompt。
+     *
+     * <p>这批角色的 content 是早期 {@code ## 身份 / ## 扮演要求} 那种拼接格式，字段里还带着
+     * 「年龄 / 职业」等已废弃的固定项。对话时它是被原样注入的，看起来就像退回了旧的数据格式。
+     * 这里按 {@code raw_json} 用 {@link SystemPromptComposer} 重算一遍，和其他角色对齐。</p>
+     *
+     * <p>只处理 {@code gen_model = mock} 且 raw_json 可解析的行：
+     * 真实 AI 生成的角色保留模型自己写的 systemPrompt（质量更好，不动）。
+     * 幂等：算出来和现有内容一致就不写库，可以反复调用。</p>
+     *
+     * @return 实际改写了几条
+     */
+    @Transactional
+    public int rebuildLegacyMockPrompts() {
+        List<AiTemplate> candidates = templateRepository.findAll().stream()
+                .filter(t -> DeepSeekClient.MOCK_MODEL.equals(t.getGenModel()))
+                .filter(t -> t.getRawJson() != null && !t.getRawJson().isBlank())
+                .toList();
+
+        int changed = 0;
+        for (AiTemplate template : candidates) {
+            JsonNode card = cardJsonParser.parse(template.getRawJson());
+            if (card == null) {
+                continue;
+            }
+            String rebuilt = systemPromptComposer.compose(card, template.getContent());
+            if (rebuilt == null || rebuilt.isBlank()) {
+                continue;
+            }
+            // 旧文本里「问答」那一段是用户真实输入，mock 卡片里没有存，重算时必须带上，
+            // 否则修完之后角色反而变笨了。
+            String legacyQa = extractLegacyQa(template.getContent());
+            if (!legacyQa.isEmpty()) {
+                rebuilt = rebuilt + "\n\n## 依据的问答\n" + legacyQa;
+            }
+            if (rebuilt.equals(template.getContent())) {
+                continue;
+            }
+            template.setContent(rebuilt);
+            templateRepository.save(template);
+            changed++;
+        }
+        log.info("旧格式角色提示词重建: 扫描={} 条, 改写={} 条", candidates.size(), changed);
+        return changed;
+    }
+
+    /** 从旧格式文本里抠出「## 你的经历与偏好（来自问答）」这一节（不含标题） */
+    private String extractLegacyQa(String content) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        int head = content.indexOf(LEGACY_QA_HEAD);
+        if (head < 0) {
+            return "";
+        }
+        String rest = content.substring(head + LEGACY_QA_HEAD.length());
+        int nextSection = rest.indexOf("\n## ");
+        if (nextSection >= 0) {
+            rest = rest.substring(0, nextSection);
+        }
+        return rest.trim();
+    }
 
     @Transactional(readOnly = true)
     public PageResult<TemplateCardVO> listMine(Long userId, int page, int size) {

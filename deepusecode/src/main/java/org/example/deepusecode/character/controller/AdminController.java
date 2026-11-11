@@ -12,6 +12,7 @@ import org.example.deepusecode.character.entity.ReportTargetType;
 import org.example.deepusecode.character.security.CurrentUser;
 import org.example.deepusecode.character.service.ModerationService;
 import org.example.deepusecode.character.service.ReportService;
+import org.example.deepusecode.character.service.TemplateService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ public class AdminController {
 
     private final ReportService reportService;
     private final ModerationService moderationService;
+    private final TemplateService templateService;
 
     /** 审核队列：待处理举报 */
     @GetMapping("/reports/pending")
@@ -78,6 +80,16 @@ public class AdminController {
                                      @PathVariable Long targetId) {
         moderationService.restore(normalize(targetType), targetId, CurrentUser.id());
         return ApiResponse.success("已恢复", null);
+    }
+
+    /**
+     * 一次性维护任务：把 mock 时代角色（旧「## 身份」格式）的 system prompt
+     * 按结构化卡片重算成统一格式。幂等，返回实际改写条数。
+     */
+    @PostMapping("/maintenance/rebuild-prompts")
+    public ApiResponse<Map<String, Object>> rebuildPrompts() {
+        int changed = templateService.rebuildLegacyMockPrompts();
+        return ApiResponse.success("重建完成", Map.of("changed", changed));
     }
 
     private String normalize(String targetType) {
