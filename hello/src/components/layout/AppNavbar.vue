@@ -22,7 +22,6 @@
         <router-link v-for="link in links" :key="link.to" :to="link.to" class="nav-link">
           {{ link.label }}
         </router-link>
-        <button v-if="isLoggedIn" class="logout-btn" @click="handleLogout">退出</button>
       </nav>
 
       <!-- 移动端：汉堡菜单 -->
@@ -44,9 +43,6 @@
         >
           {{ link.label }}
         </router-link>
-        <button v-if="isLoggedIn" class="drawer-logout" @click="handleLogoutFromMenu">
-          退出登录
-        </button>
       </div>
     </div>
   </Transition>
@@ -71,16 +67,10 @@ const route = useRoute();
 const userStore = useUserStore();
 
 const menuOpen = ref(false);
-const isLoggedIn = computed(() => userStore.isLoggedIn);
 const isAdmin = computed(() => userStore.isAdmin);
 
 const links = computed(() => {
-  if (!isLoggedIn.value) {
-    return [
-      { to: '/explore', label: '广场' },
-      { to: '/login', label: '登录' }
-    ];
-  }
+  // 演示版没有登录页，未登录时也直接给完整导航（进站已自动登录）
   const base = [
     { to: '/home', label: '首页' },
     { to: '/sets', label: '我的模板' },
@@ -106,23 +96,6 @@ function handleBack() {
     router.push(props.backTo);
   } else {
     router.back();
-  }
-}
-
-function confirmLogout() {
-  if (!confirm('确定要退出登录吗？')) return false;
-  userStore.logout();
-  router.push('/login');
-  return true;
-}
-
-function handleLogout() {
-  confirmLogout();
-}
-
-function handleLogoutFromMenu() {
-  if (confirmLogout()) {
-    menuOpen.value = false;
   }
 }
 </script>

@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { userApi } from '@/api/user';
+import { DEMO_ACCOUNT, DEMO_PASSWORD } from '@/demo';
+
+const PHONE = /^1[3-9]\d{9}$/;
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '');
@@ -51,5 +54,46 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { token, userId, account, role, isLoggedIn, isAdmin, setLoginInfo, logout, refresh };
+  /**
+   * 演示模式静默登录：演示版没有登录页，进站直接拿固定账号换 token。
+   *
+   * 并发安全：多个路由守卫同时触发时只发一次请求（共享同一个 promise）。
+   * 失败返回 false，调用方照常放行，让接口层把真实错误暴露出来，
+   * 而不是卡在一个看不见的登录页上。
+   */
+  let pending = null;
+  async function ensureDemoLogin() {
+    if (token.value) return true;
+    if (pending) return pending;
+
+    pending = (async () => {
+      try {
+        const data = PHONE.test(DEMO_ACCOUNT)
+          ? await userApi.loginPhone(DEMO_ACCOUNT, DEMO_PASSWORD)
+          : await userApi.loginEmail(DEMO_ACCOUNT, DEMO_PASSWORD);
+        setLoginInfo(data);
+        return true;
+      } catch (e) {
+        console.warn('[demo] 静默登录失败：', e.message);
+        return false;
+      } finally {
+        pending = null;
+      }
+    })();
+
+    return pending;
+  }
+
+  return {
+    token,
+    userId,
+    account,
+    role,
+    isLoggedIn,
+    isAdmin,
+    setLoginInfo,
+    logout,
+    refresh,
+    ensureDemoLogin
+  };
 });

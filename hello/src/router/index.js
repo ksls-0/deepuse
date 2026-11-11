@@ -1,12 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { isSeniorMode } from '@/stores/ui';
+import { useUserStore } from '@/stores/user';
+import { DEMO_MODE } from '@/demo';
 
+/**
+ * 演示版（DEMO_MODE）临时下掉了登录/注册。
+ * 恢复登录时把下面两段注释打开即可，LoginView / RegisterView / SeniorLoginView 文件都还在：
+ *
+ *   { path: '/login', name: 'Login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
+ *   { path: '/register', name: 'Register', component: () => import('@/views/RegisterView.vue'), meta: { public: true } },
+ *   { path: '/senior/login', name: 'SeniorLogin', component: () => import('@/views/senior/SeniorLoginView.vue'), meta: { public: true } },
+ *
+ * 同时把 src/demo.js 里的 DEMO_MODE 改成 false。
+ */
 const routes = [
   // 按上次选的界面模式决定首页落在哪边
   { path: '/', redirect: () => (isSeniorMode() ? '/senior' : '/home') },
-
-  { path: '/login', name: 'Login', component: () => import('@/views/LoginView.vue'), meta: { public: true } },
-  { path: '/register', name: 'Register', component: () => import('@/views/RegisterView.vue'), meta: { public: true } },
 
   { path: '/home', name: 'Home', component: () => import('@/views/HomeView.vue') },
 
@@ -46,12 +55,6 @@ const routes = [
   // 独立的一套页面，只保留「和角色说话 / 做一个新角色 / 帮助」三件事。
   // 和大众版共用同一套 API，数据完全互通。
   {
-    path: '/senior/login',
-    name: 'SeniorLogin',
-    component: () => import('@/views/senior/SeniorLoginView.vue'),
-    meta: { public: true }
-  },
-  {
     path: '/senior',
     name: 'SeniorHome',
     component: () => import('@/views/senior/SeniorHomeView.vue')
@@ -82,7 +85,7 @@ const routes = [
     component: () => import('@/views/senior/SeniorHelpView.vue')
   },
 
-  { path: '/:pathMatch(.*)*', redirect: '/home' }
+  { path: '/:pathMatch(.*)*', redirect: '/' }
 ];
 
 const router = createRouter({
@@ -90,24 +93,16 @@ const router = createRouter({
   routes
 });
 
-router.beforeEach((to) => {
-  const token = localStorage.getItem('token');
-  const senior = isSeniorMode();
-
-  // 未登录：跳对应的登录页（长辈版留在长辈版里，别把老人扔到小字界面）
-  if (!to.meta.public && !token) {
-    return { path: senior ? '/senior/login' : '/login', query: { redirect: to.fullPath } };
-  }
-
-  // 已登录还去登录页：送回各自的首页
-  const isLoginPage = to.path === '/login' || to.path === '/register' || to.path === '/senior/login';
-  if (isLoginPage && token) {
-    return { path: senior ? '/senior' : '/home' };
+router.beforeEach(async (to) => {
+  // 演示版：没有 token 就静默登录，不再往登录页跳
+  if (DEMO_MODE && !localStorage.getItem('token')) {
+    const userStore = useUserStore();
+    await userStore.ensureDemoLogin();
   }
 
   // 管理页仅 ADMIN 可进；服务端也会拦，这里只是体验优化
   if (to.meta.admin && localStorage.getItem('role') !== 'ADMIN') {
-    return { path: '/home' };
+    return { path: '/' };
   }
   return true;
 });

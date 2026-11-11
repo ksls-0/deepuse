@@ -26,8 +26,8 @@
       <button class="s-card s-card-clickable tile" type="button" @click="router.push('/senior/help')">
         <span class="tile-icon">❓</span>
         <span class="tile-body">
-          <span class="tile-title">帮助 / 退出</span>
-          <span class="tile-sub">怎么用、怎么退出登录</span>
+          <span class="tile-title">帮助</span>
+          <span class="tile-sub">怎么用这个页面</span>
         </span>
         <span class="tile-arrow">›</span>
       </button>

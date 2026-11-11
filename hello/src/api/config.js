@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { DEMO_MODE } from '@/demo';
 
 /**
  * baseURL 留空 => 请求走同源，由 vue.config.js 的 devServer.proxy 转发到 8081。
@@ -33,12 +34,21 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response;
-      // token 失效：清干净本地状态并回登录页
+      // token 失效
       if (status === 401) {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         localStorage.removeItem('account');
-        if (!window.location.pathname.startsWith('/login')) {
+        localStorage.removeItem('role');
+        if (DEMO_MODE) {
+          // 演示版没有登录页：清掉 token 后回首页，路由守卫会自动重新静默登录。
+          // 用 sessionStorage 限流，避免登录本身也 401 时无限刷新。
+          const last = Number(sessionStorage.getItem('demoReloginAt') || 0);
+          if (Date.now() - last > 10000) {
+            sessionStorage.setItem('demoReloginAt', String(Date.now()));
+            window.location.replace('/');
+          }
+        } else if (!window.location.pathname.startsWith('/login')) {
           window.location.href = '/login';
         }
       }

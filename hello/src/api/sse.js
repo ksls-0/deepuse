@@ -4,6 +4,7 @@
  * 所以这里用 fetch + ReadableStream 自己解析 text/event-stream。
  */
 const BASE = process.env.VUE_APP_API_BASE_URL || '';
+import { DEMO_MODE } from '@/demo';
 
 export async function postSse(path, body, { onEvent, signal } = {}) {
   const token = localStorage.getItem('token');
@@ -22,7 +23,17 @@ export async function postSse(path, body, { onEvent, signal } = {}) {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
     localStorage.removeItem('account');
-    window.location.href = '/login';
+    localStorage.removeItem('role');
+    if (DEMO_MODE) {
+      // 演示版：回首页自动重新静默登录，10 秒内只刷一次防死循环
+      const last = Number(sessionStorage.getItem('demoReloginAt') || 0);
+      if (Date.now() - last > 10000) {
+        sessionStorage.setItem('demoReloginAt', String(Date.now()));
+        window.location.replace('/');
+      }
+    } else {
+      window.location.href = '/login';
+    }
     throw new Error('登录已过期');
   }
 

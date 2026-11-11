@@ -51,9 +51,19 @@ import CharacterCard from '@/components/CharacterCard.vue';
 import { templateApi } from '@/api/templates';
 import { conversationApi } from '@/api/conversations';
 import ReportDialog from '@/components/ReportDialog.vue';
+import { useUserStore } from '@/stores/user';
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
+
+/** 演示版没有登录页：token 过期时静默重新登录，而不是跳转 */
+async function requireLogin() {
+  if (localStorage.getItem('token')) return true;
+  const ok = await userStore.ensureDemoLogin();
+  if (!ok) error.value = '演示账号登录失败，请刷新页面重试';
+  return ok;
+}
 
 const template = reactive({ id: null });
 const loading = ref(true);
@@ -77,17 +87,16 @@ async function load() {
 
 function openReport() {
   if (!localStorage.getItem('token')) {
-    router.push({ path: '/login', query: { redirect: route.fullPath } });
+    requireLogin().then((ok) => {
+      if (ok) showReport.value = true;
+    });
     return;
   }
   showReport.value = true;
 }
 
 async function startChat() {
-  if (!localStorage.getItem('token')) {
-    router.push({ path: '/login', query: { redirect: route.fullPath } });
-    return;
-  }
+  if (!(await requireLogin())) return;
   starting.value = true;
   error.value = '';
   try {
