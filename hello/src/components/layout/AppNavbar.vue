@@ -14,6 +14,9 @@
     <div class="nav-right">
       <slot name="right"></slot>
 
+      <!-- 切到长辈版（大字版） -->
+      <ModeSwitch />
+
       <!-- 桌面端：平铺导航 -->
       <nav class="desktop-links">
         <router-link v-for="link in links" :key="link.to" :to="link.to" class="nav-link">
@@ -53,6 +56,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
+import ModeSwitch from '@/components/ModeSwitch.vue';
 
 const props = defineProps({
   title: { type: String, default: '' },
