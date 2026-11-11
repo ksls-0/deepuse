@@ -63,3 +63,7 @@ design/node_modules/
 design/npm-cache/
 design/package.json
 design/package-lock.json
+
+# ---- 本地运行产物（静态服务器、重定向后的日志、临时 redis 数据）----
+run-logs/
+redis-data/
